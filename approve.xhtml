@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	template="/WEB-INF/templates/default.xhtml"
+	xmlns:p="http://primefaces.org/ui">
+
+	<f:metadata>
+		<f:viewParam name="guid" id="guid"
+			value="#{eventsApproveController.guidParam}" required="false" />
+		<f:viewParam name="uuid" id="uuid"
+			value="#{eventsApproveController.uuidParam}" required="false" />
+		<f:event type="preRenderView"
+			listener="#{eventsApproveController.processRequest()}" />
+	</f:metadata>
+
+	<ui:define name="content">
+		<h:outputText value="#{common.events_approved}"
+			rendered="#{eventsApproveController.approved}" />
+		<h:outputText value="#{common.events_not_approved}"
+			rendered="#{!eventsApproveController.approved}" />
+
+		<p:dataTable id="eventList" var="event" widgetVar="eventTable"
+			value="#{eventsApproveController.approvedEvents}"
+			emptyMessage="#{common.no_records_found}"
+			rendered="#{not empty eventsApproveController.approvedEvents}">
+
+			<p:column id="idHeader" sortBy="#{event.id}">
+				<f:facet name="header">#{message.id}</f:facet>
+				<h:outputText value="#{event.id}" />
+			</p:column>
+
+			<p:column id="titleHeader" sortBy="#{event.title}">
+				<f:facet name="header">#{message.eventTitle}</f:facet>
+				<h:link
+					value="#{contentTranslationController.translate(event.title)}"
+					outcome="event-view">
+					<f:param name="id" value="#{event.id}" />
+				</h:link>
+			</p:column>
+
+			<p:column>
+				<f:facet name="header">#{message.status}</f:facet>
+				<h:outputText value="#{event.status}" />
+			</p:column>
+		</p:dataTable>
+	</ui:define>
+</ui:composition>

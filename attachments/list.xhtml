@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:c="http://java.sun.com/jstl/core"
+	template="/WEB-INF/templates/default.xhtml"
+	xmlns:p="http://primefaces.org/ui" xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions"
+	xmlns:progressbar="http://java.sun.com/jsf/composite/components/progressbar">
+
+	<ui:define name="content">
+		<h:outputScript name="js/backEnd/attachments/attachments.js" />
+		<h:outputScript name="js/backEnd/attachments/preview.js" />
+		<h:outputStylesheet name="css/backEnd/attachments.css" />
+		<h:outputStylesheet name="css/backEnd/element/table.css" />
+		<h:outputStylesheet name="css/backEnd/element/paginator.css" />
+		<h:outputStylesheet name="css/backEnd/utils.js" />
+		<div class="attachmentsHeader">
+			<div class="attachmentsCount">
+				<span class="uppercase">#{common.total_attachments_count}:</span> <span
+					class="attachmentHeaderGrey"> </span>
+				<h:outputText id="attachmentCount"
+					value="#{attachmentController.attachmentCount()}" />
+			</div>
+			<div class="deleteAttachmentButton">
+				<p:commandButton id="deleteAttachment"
+					action="#{attachmentController.deleteAttachments()}"
+					onclick="if (!confirm('#{common.delete_attachments_confirm}')) return false;"
+					value="#{common.delete_attachments}" ajax="true"
+					update=":attachmentsList :attachmentCount"
+					disabled="#{!attachmentController.attachmentsReadyToDelete}" />
+			</div>
+		</div>
+		<!-- FILTERS -->
+		<div class="filter">
+			<div class="progressHeaderBackground attachmentsProgressContainer" />
+			<h:form id="filterForm">
+				<div id="keywordFilter" class="inlineBlocks" onkeypress="disableReturnKeyPress();">
+					<h:inputText id="globalFilter" styleClass="keywordFilter"
+						value="#{attachmentController.keyword}" label="#{message.search}"
+						onkeyup="quickSearchKeyUp({input: this, searchFoo: onChangeSearch});">
+						<p:ajax event="change" update=":attachmentsList "
+							onstart="enableAjaxProgress('.attachmentsList');"
+							oncomplete="disableAjaxProgress('.attachmentsList');"></p:ajax>
+					</h:inputText>
+					<p:watermark value="#{common.attachments_quick_search}"
+						for="globalFilter"></p:watermark>
+				</div>
+				<div id="statusesFilter" class="inlineBlocks">
+					<p:selectOneMenu styleClass="statusesFilter"
+						value="#{attachmentController.fromSize}" ajax="true">
+						<f:selectItem itemLabel="#{common.from_size}" itemValue="" />
+						<f:selectItem itemLabel="5 KB" itemValue="5" />
+						<f:selectItem itemLabel="50 KB" itemValue="50" />
+						<f:selectItem itemLabel="100 KB" itemValue="100" />
+						<f:selectItem itemLabel="500 KB" itemValue="500" />
+						<f:selectItem itemLabel="1 MB" itemValue="1024" />
+						<f:selectItem itemLabel="2 MB" itemValue="2048" />
+						<f:selectItem itemLabel="5 MB" itemValue="5120" />
+						<f:selectItem itemLabel="25 MB" itemValue="25600" />
+						<p:ajax event="change" update=":attachmentsList :attachmentCount"
+							onstart="enableAjaxProgress('.attachmentsList');"
+							oncomplete="disableAjaxProgress('.attachmentsList');"></p:ajax>
+					</p:selectOneMenu>
+					<p:selectOneMenu styleClass="statusesFilter"
+						value="#{attachmentController.toSize}" ajax="true">
+						<f:selectItem itemLabel="#{common.to_size}" itemValue="" />
+						<f:selectItem itemLabel="10 KB" itemValue="10" />
+						<f:selectItem itemLabel="100 KB" itemValue="100" />
+						<f:selectItem itemLabel="500 KB" itemValue="500" />
+						<f:selectItem itemLabel="1 MB" itemValue="1024" />
+						<f:selectItem itemLabel="2 MB" itemValue="2048" />
+						<f:selectItem itemLabel="5 MB" itemValue="5120" />
+						<f:selectItem itemLabel="25 MB" itemValue="25600" />
+						<f:selectItem itemLabel="50 MB" itemValue="51200" />
+						<p:ajax event="change" update=":attachmentsList :attachmentCount"
+							onstart="enableAjaxProgress('.attachmentsList');"
+							oncomplete="disableAjaxProgress('.attachmentsList');"></p:ajax>
+					</p:selectOneMenu>
+
+				</div>
+				<div id="statusesFilter" class="inlineBlocks">
+					<p:selectOneMenu styleClass="statusesFilter"
+						value="#{attachmentController.selectedAttacmentTypes}">
+						<f:selectItem itemLabel="#{common.all_types}" />
+						<f:selectItems value="#{types}" var="type" itemLabel="#{type}" />
+						<p:ajax event="change" update=":attachmentsList :attachmentCount"
+							onstart="enableAjaxProgress('.attachmentsList');"
+							oncomplete="disableAjaxProgress('.attachmentsList');"></p:ajax>
+					</p:selectOneMenu>
+				</div>
+				<div class="filterButton">
+					<p:commandButton id="filterSubmit" styleClass="searchButton"
+						ajax="true" value="" update=":attachmentsList :attachmentCount"
+						onkeypress="tableClass.getPaginator().setPage(0)" />
+				</div>
+			</h:form>
+		</div>
+		<!-- END FILTERS -->
+		<!-- ATTACHMENT LIST -->
+		<div class="attachmentsList">
+			<h:form id="attachmentsList">
+				<p:growl id="growl" showDetail="true" sticky="false" life="3000" />
+				<p:dataTable var="attachment"
+					binding="#{attachmentController.dataTable}" styleClass="tableClass"
+					lazy="true" value="#{attachmentController.dataModel}" pageLinks="5"
+					rows="#{attachmentController.resultsPerPage}" paginator="true"
+					paginatorTemplate="{FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+					currentPageReportTemplate="{currentPage} #{message.of} {totalPages}"
+					rowsPerPageTemplate="10,20,30"
+					emptyMessage="#{common.no_records_found}" id="attachmentTable"
+					selection="#{attachmentController.selectedAttachments}"
+					sortBy="#{attachment.title}" >
+
+					<p:column selectionMode="multiple"
+						styleClass="checkBoxEventToAproveHead" />
+
+					<p:column headerText="#{common.attachment_list_title}"
+						sortBy="#{attachment.title}" styleClass="authorEventToAproveHead">
+						<div class="attachmentLink">
+							<h:outputLink
+								value="#{attachmentController.attachmentStaticPath(attachment)}"
+								onmouseover="ShowContent(this);" onmouseout="HideContent(this);">
+								<h:outputText
+									value="#{attachmentController.cutLongAttachmentTitle(attachment.title)}"
+									styleClass="attachmentTitle" />
+							</h:outputLink>
+						</div>
+						<div class="attachmentPreview">
+							<p:graphicImage id="previewImg" style="display:none"
+								value="#{attachmentController.preview(attachment.id)}"
+								rendered="#{attachmentController.preview(attachment.id)!=null ? true : false}" />
+						</div>
+					</p:column>
+
+					<p:column headerText="#{common.attachment_list_type}"
+						sortBy="#{attachment.type}" styleClass="authorEventToAproveHead">
+						<h:outputText value="#{attachment.type}" />
+					</p:column>
+
+					<p:column headerText="#{common.attachment_list_size}"
+						sortBy="#{attachment.size}" styleClass="authorEventToAproveHead">
+						<h:outputText
+							value="#{attachmentController.convertFileSize(attachment.size)}" />
+					</p:column>
+
+					<p:column headerText="#{common.attachment_list_event}"
+						sortBy="#{attachment.event}" styleClass="authorEventToAproveHead">
+						<h:link styleClass="attachmentTitle"
+							value="#{contentTranslationController.translate(attachment.event.title)}"
+							outcome="event-view">
+							<f:param name="id" value="#{attachment.event.id}" />
+						</h:link>
+					</p:column>
+
+					<p:column styleClass="actionEventToAproveHead">
+						<p:commandButton value="" styleClass="deleteSingleAttachment"
+							ajax="true"
+							onclick="if(!confirm('#{common.delete_attachment}')) return false;"
+							action="#{attachmentController.deleteAttachmentById}"
+							update=":attachmentsList :attachmentCount" id="myID"
+							onstart="enableAjaxProgress('.attachmentsList');"
+							oncomplete="disableAjaxProgress('.attachmentsList');">
+							<f:setPropertyActionListener
+								target="#{attachmentController.attachmentId}"
+								value="#{attachment.id}" />
+						</p:commandButton>
+
+					</p:column>
+					<p:ajax event="toggleSelect" update=":deleteAttachment" />
+					<p:ajax event="rowSelectCheckbox" update=":deleteAttachment" />
+					<p:ajax event="rowUnselectCheckbox" update=":deleteAttachment" />
+					<p:ajax event="sort" update=":attachmentsList:attachmentTable"
+						onstart="enableAjaxProgress('.attachmentsList');"
+						oncomplete="disableAjaxProgress('.attachmentsList');" />
+					<p:ajax event="page"
+						onstart="enableAjaxProgress('.attachmentsList');"
+						oncomplete="disableAjaxProgress('.attachmentsList');" />
+				</p:dataTable>
+				<p:commandButton id="itemNumberAttachmentUpdater"
+					style="display:none;" widgetVar="itemNumberAttachmentUpdater"
+					value="" update=":itemNumberAttachment" />
+			</h:form>
+			<div class="itemPerPageBottom">
+				<h:outputText id="itemNumberAttachment" class="itemsPerPageText"
+					value="#{common.items_per_page_showing} #{attachmentController.numberOfRows()} #{common.items_per_page_showing_of} #{attachmentController.dataModel.rowCount} #{common.items_per_page_showing_items}" />
+				<span class="itemsPerPageText">#{common.items_per_page}</span>
+				<p:selectOneMenu styleClass="selectItemsPerPageBottom"
+					widgetVar="selectVarBottomFirstTab">
+					<f:selectItem itemLabel="10" itemValue="10" />
+					<f:selectItem itemLabel="20" itemValue="20" />
+					<f:selectItem itemLabel="30" itemValue="30" />
+					<p:ajax event="change"
+						onstart="itemPerPageSelectBottom('attachmentsList', true);"
+						oncomplete="disableAjaxProgress('.attachmentsList'); itemNumberAttachmentUpdater.jq.click();"></p:ajax>
+				</p:selectOneMenu>
+			</div>
+		</div>
+	</ui:define>
+</ui:composition>

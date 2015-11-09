@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:p="http://primefaces.org/ui" xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions">
+
+<h:body>
+	<div class="locationContainer">
+		<h:form>
+			<p:selectOneMenu styleClass="selectLocation"
+				converter="locationConverter" id="location"
+				value="#{locationBackingBean.selectedLocation}">
+				<f:selectItems value="#{locationBackingBean.availableLocations}"
+					var="loc" itemLabel="#{loc.name}" itemValue="#{loc}" />
+				<p:ajax event="change" onsuccess="document.location.reload()"
+					listener="#{locationBackingBean.setLocation}" />
+			</p:selectOneMenu>
+		</h:form>
+	</div>
+</h:body>
+</html>

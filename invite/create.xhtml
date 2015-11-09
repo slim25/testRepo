@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:p="http://primefaces.org/ui" xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions"
+	xmlns:menu="http://java.sun.com/jsf/composite/components/menu"
+	xmlns:preview="http://java.sun.com/jsf/composite/components/preview"
+	template="/WEB-INF/templates/default.xhtml">
+
+	<f:metadata>
+		<f:viewParam name="eventId" id="eventId" required="false"
+			value="#{inviteEditBackingBean.eventId}" />
+		<f:viewParam name="inviteId" id="inviteId" required="false"
+			value="#{inviteEditBackingBean.inviteId}" />
+		<f:event type="preRenderView"
+			listener="#{inviteEditBackingBean.initRequestUrlParameters()}" />
+	</f:metadata>
+
+	<ui:define name="content">
+		
+		<h:outputScript name="js/backEnd/invite/be_editInvite.js"/>
+		<h:outputScript name="js/backEnd/invite/inviteValidationRESTLogger.js" />
+		<h:outputScript name="js/backEnd/invite/createInvite.js" />
+		<h:outputScript name="js/backEnd/user/addUsers.js" />
+		<h:outputStylesheet name="css/backEnd/inviteSaveValidation.css" />
+		<h:outputStylesheet name="css/backEnd/groupDetails.css" />
+		<h:outputStylesheet name="css/backEnd/element/paginator.css" />
+		<h:outputText value="#{common.create_invite}"
+			styleClass="createInviteHeader" />
+		<h3>
+			<h:outputText
+				value="There are no available room for this event. Please add new rooms, or change location of this event."
+				rendered="#{inviteEditBackingBean.busyRooms.size() == 0}" />
+		</h3>
+		<o:form id="form" styleClass="inviteForm"
+			rendered="#{inviteEditBackingBean.busyRooms.size() > 0}">
+
+			<p:growl id="growl" showDetail="true" sticky="false"
+				autoUpdate="true" />
+			<p:panel id="manual">
+
+				<div class="inviteTitle">
+					<h:outputText title="Event Title"
+						value="#{contentTranslationController.translate(inviteEditBackingBean.event.title)}"
+						style="font-weight: bold" rendered="false" />
+					<h:link
+						value="#{contentTranslationController.translate(inviteEditBackingBean.event.title)}"
+						outcome="event-view">
+						<f:param name="id" value="#{inviteEditBackingBean.eventId}" />
+					</h:link>
+					<br />
+
+					<h:outputLabel value="#{inviteEditBackingBean.generalEventInfo}" />
+				</div>
+				<div class="dateTimeWrapper">
+					<div class="dateTime">
+						<div class="commonDate">#{common.date_time}</div>
+						<h:outputLabel for="calendar" />
+						<p:calendar id="calendar" pattern="MM/dd/yyyy"
+							showButtonPanel="false" readonlyInput="true" pages="1"
+							navigator="true" mindate="#{inviteEditBackingBean.currentDate}"
+							value="#{inviteEditBackingBean.inviteStartDate}"
+							locale="#{languageBackingBean.obtainLocale()}" rendered="true"
+							styleClass="calendarClass">
+							<p:ajax event="dateSelect"
+								listener="#{inviteEditBackingBean.changeDateListener}"
+								update=":form:rooms,:form:trainers" />
+						</p:calendar>
+						<h:message id="callendarMessage" for="calendar"
+							errorClass="invalid" />
+					</div>
+					<div class="startTimeWrapper">
+						<div class="startTime">#{common.set_start_time}</div>
+						<div class="startTimeDropdown">
+							<!-- Event start time picker -->
+							<p:selectOneMenu id="startTimeDropdown"
+								value="#{inviteEditBackingBean.inviteStartTime}">
+								<f:selectItems value="#{inviteEditBackingBean.timeStamps}" />
+								<p:ajax event="change"
+									listener="#{inviteEditBackingBean.handleStartTimeChange}"
+									update=":form:rooms,:form:trainers" />
+							</p:selectOneMenu>
+						</div>
+					</div>
+				</div>
+
+				<h:panelGroup id="rooms" layout="block" styleClass="roomsClass">
+
+					<p:panel id="roomsAvailabilityTable">
+						<p:dataTable id="roomSelectTable" selectionMode="single"
+							styleClass="roomsAvailabilityTable tableClass"
+							widgetVar="roomsTable" value="#{inviteEditBackingBean.busyRooms}"
+							selection="#{inviteEditBackingBean.busyRoom}" var="room"
+							rowIndexVar="rowIndex" rowKey="#{room}" rows="10"
+							paginator="true" paginatorPosition="bottom"
+							emptyMessage="#{common.no_records_found}">
+
+							<f:facet name="header">
+								<div class="commonRoom" style="display: none;">#{common.room}</div>
+								<div class="inviteProgress">
+									<div class="progressHeaderBackground" />
+								</div>
+								<p:inputText id="globalFilter" styleClass="keywordFilter"
+									onkeypress="disableReturnKeyPress();"
+									onkeyup="quickSearchKeyUp({input: this, searchFoo: filterSearch, tableVar: roomsTable});" />
+								<p:watermark for="globalFilter" value="#{common.room}" />
+								<ui:repeat var="column"
+									value="#{inviteEditBackingBean.availabilityMatrix[0]}"
+									varStatus="colVarStatus" step="2">
+									<th class="timeStampHeader" colspan="2">#{inviteEditBackingBean.timeStamps[colVarStatus.index]}</th>
+								</ui:repeat>
+							</f:facet>
+
+							<p:column filterBy="#{room.room.name}"
+								filterStyle="display: none;" width="250">
+								<h:outputText value="#{room}" styleClass="#{room.busyStatus}" />
+								<div class="roomLocation">
+									#{common.room_location}: #{room.room.location.name}
+									<h:outputText value="- #{room.room.address}"
+										rendered="#{room.room.address != null}" />
+								</div>
+								<ui:repeat var="row"
+									value="#{inviteEditBackingBean.availabilityMatrix[rowIndex]}"
+									varStatus="colVarStatus">
+									<ui:repeat var="column" value="#{row}" varStatus="rowVarStatus">
+										<td
+											class="#{column}#{inviteEditBackingBean.highlightColum(colVarStatus.index) ? ' highlightColumn' : ''}" />
+									</ui:repeat>
+								</ui:repeat>
+							</p:column>
+
+							<p:ajax event="rowSelect" />
+							<p:ajax event="page"
+								onstart="enableAjaxProgress('.roomsAvailabilityTable tbody')"
+								oncomplete="disableAjaxProgress('.roomsAvailabilityTable tbody')" />
+							<p:ajax event="filter"
+								onstart="enableAjaxProgress('.roomsAvailabilityTable tbody')"
+								oncomplete="disableAjaxProgress('.roomsAvailabilityTable tbody')" />
+						</p:dataTable>
+					</p:panel>
+
+					<div class="markRoom">
+						<h:graphicImage styleClass="availableRoom"
+							value="#{staticPath}/resources/img/ic_available.png" />
+						<h:outputText styleClass="availableText"
+							value=" - #{common.available}" />
+						<h:graphicImage styleClass="busyRoom"
+							value="#{staticPath}/resources/img/ic_busy.png" />
+						<h:outputText styleClass="busyText" value=" - #{common.busy}" />
+					</div>
+				</h:panelGroup>
+
+				<div class="people">
+					<div class="inviteEditTrainersAttendeesAssistantContainer">
+						<h:panelGroup id="trainers" layout="block"
+							styleClass="inviteEditTrainersContainer">
+							<div class="headerLabel">#{common.trainers}</div>
+							<div class="inviteEditTrainersContent">
+								<h:selectManyCheckbox id="trainersCheckBox"
+									value="#{inviteEditBackingBean.inviteTrainers}"
+									converter="busyUserConverter" layout="pageDirection">
+									<f:selectItems value="#{inviteEditBackingBean.eventTrainers}"
+										var="eventTrainer"
+										itemLabel="#{eventTrainer.user.firstName} #{eventTrainer.user.lastName}"
+										itemValue="#{eventTrainer}"
+										itemDisabled="#{eventTrainer.busyStatus eq 'BUSY'}"
+										styleClass="inviteTrainerItem" />
+								</h:selectManyCheckbox>
+							</div>
+						</h:panelGroup>
+						<h:panelGroup id="attendees" layout="block"
+							styleClass="inviteEditAttendeesContainer">
+							<div class="headerLabel">#{message.attendees}</div>
+							<p:commandLink id="modalDialogButton2"
+								value="#{message.addGroupsToInviteLink}"
+								onclick="groupAddDialog.show();cleanAutocompleteInput();" />
+							<p:commandLink id="modalDialogButton"
+								value="#{message.addAttendeesToInviteLink}"
+								onclick="attendeesAddDialog.show();cleanAutocompleteInput();" />
+							<div class="inviteEditAttendeesContent">
+								<h:panelGroup
+									rendered="#{inviteEditBackingBean.inviteAdditionalAttendees.size() > 0}"
+									layout="block">
+									<div class="">#{message.manualAttendeesInInvite}</div>
+									<h:dataTable id="inviteAdditionalAttendees"
+										value="#{inviteEditBackingBean.inviteAdditionalAttendees}"
+										var="inviteAdditionalAttendee">
+										<h:column>
+											<span class="inviteAdditionalAttendeeItem"> <h:outputText
+													value="#{inviteAdditionalAttendee.firstName} #{inviteAdditionalAttendee.lastName}" />
+											</span>
+										</h:column>
+										<h:column>
+											<p:commandButton id="deleteAdditionalAttendee" value="x"
+												style="display:none"
+												actionListener="#{inviteEditBackingBean.deleteAdditionalAttendeeFromInvite(inviteAdditionalAttendee)}"
+												ajax="true" update=":form:attendees" />
+										</h:column>
+									</h:dataTable>
+								</h:panelGroup>
+								<h:panelGroup
+									rendered="#{inviteEditBackingBean.inviteAttendees.size() > 0}"
+									layout="block">
+									<div>#{message.subscribedAttendeesInInvite}</div>
+									<h:dataTable id="inviteAttendees"
+										value="#{inviteEditBackingBean.inviteAttendees}"
+										var="inviteAttendee">
+										<h:column>
+											<span class="inviteAttendeeItem"> <h:outputText
+													value="#{inviteAttendee.firstName} #{inviteAttendee.lastName}" />
+											</span>
+										</h:column>
+										<h:column>
+											<p:commandButton id="deleteAttendee" value="x"
+												style="display:none"
+												actionListener="#{inviteEditBackingBean.deleteAttendeeFromInvite(inviteAttendee)}"
+												ajax="true" update=":form:attendees" />
+										</h:column>
+									</h:dataTable>
+								</h:panelGroup>
+								<div class="minAttendeeHidden">
+									<h:inputHidden
+										value="#{inviteEditBackingBean.event.minAttendee}" />
+								</div>
+								<div class="maxAttendeeHidden">
+									<h:inputHidden
+										value="#{inviteEditBackingBean.event.maxAttendee}" />
+								</div>
+							</div>
+						</h:panelGroup>
+						<div class="inviteEditAssistantContainer">
+							<div class="headerLabel">#{common.assistant}</div>
+							<div class="inviteEditAssistantContent">#{inviteEditBackingBean.assistant.firstName}
+								#{inviteEditBackingBean.assistant.lastName}</div>
+						</div>
+					</div>
+
+				</div>
+				<div class="bottomPart">
+					<p:commandButton id="hiddenSubmitButton" value="click"
+						styleClass="hiddenSubmitButton" style="display: none"
+						action="#{inviteEditBackingBean.configureInviteParameters()}"
+						update=":form:trainers, :form:inviteAttendees" />
+
+					<div style="">
+						<p:commandButton id="saveSendData"
+							value="#{common.invites_create_save_and_send_invitations}"
+							action="#{inviteEditBackingBean.saveOrUpdateInvite()}"
+							ajax="true" styleClass="saveSendDataButton" />
+					</div>
+
+					<div style="">
+						<p:button id="cancelAndClose" outcome="eventEdit"
+							value="#{message.beck_to_all_events}">
+							<f:param name="id" value="#{inviteEditBackingBean.eventId}" />
+						</p:button>
+					</div>
+				</div>
+			</p:panel>
+			<p:blockUI block="form"
+				trigger=":form:startTimeDropdown,:form:calendar">
+				<h:graphicImage id="ajaxLoader"
+					value="#{staticPath}/resources/img/AjaxLoader.gif" />
+			</p:blockUI>
+
+		</o:form>
+		<p:dialog header="#{message.addAttendeesToInviteDialogHeader}"
+			widgetVar="attendeesAddDialog" modal="true" resizable="false"
+			styleClass="addPeopleInInvite">
+			<h:form id="addUser">
+				<div class="autocompleteContainer">
+					<h:outputLabel value="#{message.select_location}"
+						styleClass="locationLabel" />
+					<div class="changeLocationButton">
+						<p:selectOneMenu id="changeLocationDropDown"
+							value="#{inviteEditBackingBean.selectedLocation}"
+							converter="locationConverter"
+							styleClass="changeLocation">
+							<f:selectItem itemLabel="All" />
+							<f:selectItems value="#{inviteEditBackingBean.availableLocation}"
+								var="loc" itemLabel="#{loc.name}" itemValue="#{loc}" />
+							<p:ajax event="change"></p:ajax>
+						</p:selectOneMenu>
+					</div>
+					<h:outputLabel value="#{message.selectFromAvailableUsers}"
+						styleClass="availableUsersLabel" />
+					<p:autoComplete id="attendeeDialogContent"
+						completeMethod="#{inviteEditBackingBean.handleAdditionalAttendeesComplete}"
+						var="user" itemLabel="#{user.login}" itemValue="#{user}"
+						converter="userConverter" forceSelection="true" minQueryLength="3"
+						delay="1">
+						<p:ajax event="itemSelect" onsuccess="cleanAutocompleteInput();"
+							listener="#{inviteEditBackingBean.handleAdditionalAttendeesSelect}"
+							update="attendeeDialogTable" />
+					</p:autoComplete>
+					<h:panelGroup id="attendeeDialogTable" layout="block"
+						styleClass="selectedUsers">
+						<ui:repeat
+							value="#{inviteEditBackingBean.inviteAutocompleteAdditionalAttendees}"
+							var="autocompleteAttendee">
+							<div class="selectedUser">
+								<h:outputText
+									value="#{autocompleteAttendee.firstName} #{autocompleteAttendee.lastName}" />
+								<p:commandButton value="x"
+									actionListener="#{inviteEditBackingBean.deleteAutocompleteAdditionalAttendee(autocompleteAttendee)}"
+									update="@form" />
+							</div>
+						</ui:repeat>
+					</h:panelGroup>
+				</div>
+				<div class="dialogFooter">
+					<div>
+						<p:commandButton value="#{message.addAttendeesToInviteButton}"
+							id="saveButton" onclick="attendeesAddDialog.hide();"
+							actionListener="#{inviteEditBackingBean.updateAdditionalAttendees}"
+							update=":form:attendees @form" />
+					</div>
+					<div>
+						<p:commandButton
+							value="#{message.addAttendeesToInviteCancelButton}"
+							onclick="attendeesAddDialog.hide();"
+							actionListener="#{inviteEditBackingBean. deleteAllAutocompleteAdditionalAttendees}"
+							update=":form:attendees @form" />
+					</div>
+				</div>
+			</h:form>
+			<p:ajax event="close" update="addUser"
+				listener="#{inviteEditBackingBean.resetChanges()}" />
+		</p:dialog>
+		<p:dialog header="#{message.addGroupsToInviteDialogHeader}"
+			widgetVar="groupAddDialog" modal="true" resizable="false"
+			styleClass="addPeopleInInvite">
+			<p:ajax event="close"
+				listener="#{inviteEditBackingBean.deleteAllAutocompleteAdditionalGroups}"
+				update="@this" />
+			<h:form>
+				<div class="autocompleteContainer">
+					<h:outputLabel for="groupInput"
+						value="#{message.selectFromAvailableGroups}" />
+					<p:autoComplete id="groupInput"
+						completeMethod="#{inviteEditBackingBean.handleAdditionalGroupsComplete}"
+						var="group" itemLabel="#{group.group_name}" itemValue="#{group}"
+						converter="groupConverter" forceSelection="true"
+						minQueryLength="3" delay="1">
+						<p:ajax event="itemSelect" onsuccess="cleanAutocompleteInput();"
+							listener="#{inviteEditBackingBean.handleAdditionalGroupsSelect}"
+							update="groupDialogTable" />
+					</p:autoComplete>
+					<h:panelGroup id="groupDialogTable" layout="block"
+						styleClass="selectedUsers">
+						<ui:repeat
+							value="#{inviteEditBackingBean.inviteAutocompleteAdditionalGroups}"
+							var="additionalGroup">
+							<div class="selectedUser">
+								<h:outputText value="#{additionalGroup.group_name}" />
+								<p:commandButton value="x"
+									actionListener="#{inviteEditBackingBean.deleteAutocompleteAdditionalGroup(additionalGroup)}"
+									update="@form" />
+							</div>
+						</ui:repeat>
+					</h:panelGroup>
+				</div>
+				<div class="dialogFooter">
+					<div>
+						<p:commandButton value="#{message.addGroupsToInviteButton}"
+							id="saveButton" onsuccess="groupAddDialog.hide();"
+							actionListener="#{inviteEditBackingBean.updateAdditionalGroups}"
+							update=":form:attendees @form" />
+					</div>
+					<div>
+						<p:commandButton
+							value="#{message.addAttendeesToInviteCancelButton}"
+							onclick="groupAddDialog.hide();"
+							actionListener="#{inviteEditBackingBean.deleteAllAutocompleteAdditionalGroups}"
+							update=":form:attendees @form" />
+					</div>
+				</div>
+			</h:form>
+		</p:dialog>
+		<p:dialog id="messagesDialog" header="Validation Process" modal="true"
+			resizable="false" closable="true" widgetVar="validationDialog"
+			visible="false">
+			<div id="dialogMessages"></div>
+			<div class="dialogFooter">
+				<p:button id="saved"
+					href="/admin/event/view.htm?id=#{inviteEditBackingBean.eventId}"
+					value="Edit Event">
+				</p:button>
+				<p:commandButton id="close" value="Close"
+					update="form:trainers form:rooms"
+					onclick="validationDialog.hide();"></p:commandButton>
+			</div>
+		</p:dialog>
+	</ui:define>
+</ui:composition>

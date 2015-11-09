@@ -1,0 +1,549 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	template="/WEB-INF/templates/default.xhtml"
+	xmlns:menu="http://java.sun.com/jsf/composite/components/menu"
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions">
+	<ui:define name="content">
+		<h:outputStylesheet name="css/backEnd/dashboard.css" />
+		<h:outputStylesheet name="css/backEnd/element/table.css" />
+		<h:outputStylesheet name="css/backEnd/element/paginator.css" />
+		<h:outputStylesheet name="css/backEnd/eventsCategoryTree.css" />
+		<h:outputStylesheet name="css/backEnd/usersList.css" />
+		<h:outputStylesheet name="css/backEnd/groupEdit.css" />
+		<h:outputStylesheet name="css/backEnd/utils.js" />
+		<h:outputScript name="js/backEnd/user/editGroup.js" />
+
+		<div class="progressHeaderBackground usersProgressContainer" />
+		<p:tabView id="usersAndGroups" styleClass="pTabApprove">
+			<p:tab id="users" titleStyleClass="usersTitle"
+				title="#{common.user_management} (#{usersListBackingBean.usersLazyModel.rowCount})">
+				<h:outputText value="#{common.user_management} (#{usersListBackingBean.usersLazyModel.rowCount})"
+					id="usersCount" styleClass="usersCount" style="display:none;"/>
+				<p:commandButton id="countUpdater" style="display:none;"
+						widgetVar="countUpdater" value=""
+						update=":usersAndGroups:usersCount"
+						oncomplete="$('.usersTitle a').text($('.usersCount').text());"/>
+				<div class="dashboardFiltersWrapper">
+					<div id="keywordFilter" onkeypress="disableReturnKeyPress();">
+						<p:inputText id="userKeywordFilter" styleClass="keywordFilter"
+							style="width: 150px;"
+							onkeyup="quickSearchKeyUp({input: this, searchFoo: hidenFilterSearch, $filter: $('.hidenUserFilter'), tableVar: ULDT});"/>
+						<p:watermark value="#{common.attachments_quick_search}"
+							for="userKeywordFilter"></p:watermark>
+					</div>
+					<h:form>
+						<p:selectOneMenu id="userRoleFilter" styleClass="roleSelectOneFilter"
+							value="#{usersListBackingBean.usersLazyModel.selectedRole}" >
+							<f:selectItem itemLabel="#{common.all_roles}"/>
+							<f:selectItems value="#{usersListBackingBean.userRoleEnum}"
+								var="role" itemValue="#{role}" />
+							<p:ajax event="change" update=":usersAndGroups:form:userTable"
+								onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+								oncomplete="countUpdater.jq.click(); disableAjaxProgress('.dashboardFirstTabTable');" />
+						</p:selectOneMenu>
+					</h:form>
+				</div>
+				<div class="usersHiddenFunctionality">
+					<h:form id="usersHiddenFunctionality">
+						<div class="addToGroupButton">
+							<p:commandButton ajax="true"
+								disabled="#{!usersListBackingBean.readyToWorkWithUsers}"
+								id="addToGroupButton" styleClass="groupButton"
+								value="#{common.users_list_addToGroupButton}"
+								onclick="addUsersDialog.show();">
+							</p:commandButton>
+						</div>
+						<div class="notyfyUsersDiv">
+							<p:selectOneMenu id="notyfyUsers" styleClass="selectNotyfyUsers"
+								disabled="#{!usersListBackingBean.readyToWorkWithUsers}">
+								<f:selectItem itemLabel="Notify users" itemValue="10" />
+								<f:selectItem itemLabel="Notify users" itemValue="10" />
+								<f:selectItem itemLabel="Notify users" itemValue="10" />
+								<f:selectItem itemLabel="Notify users" itemValue="10" />
+							</p:selectOneMenu>
+						</div>
+					</h:form>
+					<!-- Add users to groups modal window -->
+					<p:dialog id="addUsersToGroups_dlg" widgetVar="addUsersDialog"
+						modal="true" styleClass="addPeopleInInvite"
+						header="#{common.addToGroups}" resizable="false" dynamic="true">
+						<h:form id="groupsForm">
+							<div class="groupsWrapper">
+								<p:dataTable var="group"
+									styleClass="tableClass dashboardFirstTabTable"
+									value="#{groupListBackingBean.lazyModel}" pageLinks="5"
+									rows="10" paginator="true" lazy="true"
+									emptyMessage="#{common.no_records_found}" id="categoryTable2"
+									selection="#{usersListBackingBean.selectedGroups}"
+									sortBy="#{group.group_name}" rowKey="#{group.id}">
+
+									<p:column selectionMode="multiple"
+										styleClass="checkBoxEventToAproveHead" />
+
+									<p:column headerText="#{common.groupName}"
+										sortBy="#{group.group_name}" filterBy="#{group.group_name}"
+										styleClass="titleEventToAproveHead"
+										id="addUsersToGroupsTableTitleWithFilter">
+										#{group.group_name}
+									</p:column>
+
+
+									<p:column headerText="#{common.numberOfMembers}"
+										sortBy="#{group.subscribed_users.size()}"
+										styleClass="authorEventToAproveHead">
+										<h:outputText value="#{group.subscribed_users.size()}" />
+									</p:column>
+									<p:ajax event="filter"
+										update=":usersAndGroups:groupsForm:categoryTable2" />
+									<p:ajax event="toggleSelect"
+										update=":usersAndGroups:buttonsAddB:addB" />
+									<p:ajax event="rowSelectCheckbox"
+										update=":usersAndGroups:buttonsAddB:addB" />
+									<p:ajax event="rowUnselectCheckbox"
+										update=":usersAndGroups:buttonsAddB:addB" />
+								</p:dataTable>
+							</div>
+						</h:form>
+						<h:form id="buttonsAddB">
+							<div class="dialogFooter">
+								<div>
+									<p:commandButton value="#{common.addUsersToGroupsButtonSave}"
+										action="#{usersListBackingBean.addUsersToGroups}" ajax="false"
+										onsuccess="addUsersDialog.hide();"
+										update=":usersAndGroups:users"
+										disabled="#{!usersListBackingBean.readyToWorkWithGroup}"
+										id="addB" />
+								</div>
+								<div>
+									<p:commandButton value="#{common.addUsersToGroupsButtonCancel}"
+										action="#{usersListBackingBean.clearSelection}" ajax="false"
+										onclick="addUsersDialog.hide();"
+										update=":usersAndGroups:users" />
+								</div>
+							</div>
+						</h:form>
+						<p:ajax event="close" update=":usersAndGroups:users"
+							listener="#{usersListBackingBean.clearSelection}" />
+					</p:dialog>
+				</div>
+				<h:form id="form">
+				<p:growl id="growl" showDetail="true" sticky="false" life="4000"/>
+					<p:dataTable id="userTable" var="tableUser" widgetVar="ULDT"
+						styleClass="tableClass dashboardFirstTabTable usersListTable" lazy="true"
+						value="#{usersListBackingBean.usersLazyModel}" pageLinks="5"
+						rows="#{usersListBackingBean.resultsPerPage}" paginator="true"
+						paginatorTemplate="{FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+						currentPageReportTemplate="{currentPage} #{message.of} {totalPages}"
+						rowsPerPageTemplate="10,20,30"
+						emptyMessage="#{common.no_records_found}"
+						selection="#{usersListBackingBean.selectedUsers}"
+						sortBy="#{tableUser.login}">
+
+						<p:column selectionMode="multiple"
+							styleClass="checkBoxEventToAproveHead" />
+
+						<p:column headerText="#{message.login}" sortBy="#{tableUser.login}"
+							styleClass="titleEventToAproveHead"
+							filterBy="#{tableUser.login}" filterStyle="display: none !important"
+							filterStyleClass="hidenUserFilter">
+							<ui:remove><h:link value="#{tableUser.login}" outcome="user-details">
+								<f:param name="id" value="#{tableUser.id}"/>
+							</h:link></ui:remove>
+							<a href="../../#user/id=#{tableUser.id}">#{tableUser.login}</a>
+							<br />
+							<span class="user-location">Location:
+								#{tableUser.city} #{empty tableUser.location ? "" : tableUser.location}</span>
+						</p:column>
+
+						<p:column headerText="#{message.firstName}"
+							sortBy="#{tableUser.firstName}" styleClass="authorEventToAproveHead">
+							<h:outputText value="#{tableUser.firstName}" />
+						</p:column>
+
+						<p:column headerText="#{message.lastName}"
+							sortBy="#{tableUser.lastName}" styleClass="authorEventToAproveHead">
+							<h:outputText value="#{tableUser.lastName}" />
+						</p:column>
+
+						<p:column headerText="#{message.level}" sortBy="#{tableUser.level}"
+							styleClass="authorEventToAproveHead">
+							<h:outputText value="#{tableUser.level}" />
+						</p:column>
+						
+						<p:column headerText="#{message.role}" sortBy="#{tableUser.role}"
+							styleClass="authorEventToAproveHead">
+							<h:outputText value="#{tableUser.role}" />
+						</p:column>
+
+						<p:column headerText="#{message.userGroups}"
+							styleClass="authorEventToAproveHead">
+							<ul>
+								<ui:repeat var="userGroup"
+									value="#{tableUser.getUserGroups().toArray()}" varStatus="status">
+									<li><h:outputText value="#{userGroup.group_name}" /></li>
+								</ui:repeat>
+							</ul>
+						</p:column>
+
+						<p:column styleClass="actionEventToReady">
+							<h:link value="#{message.editUser}" outcome="user-edit">
+								<f:param name="id" value="#{tableUser.id}" />
+							</h:link>
+						</p:column>
+						
+						<p:ajax event="toggleSelect"
+							update=":usersAndGroups:usersHiddenFunctionality:addToGroupButton :usersAndGroups:usersHiddenFunctionality:notyfyUsers" />
+						<p:ajax event="rowSelectCheckbox"
+							update=":usersAndGroups:usersHiddenFunctionality:addToGroupButton :usersAndGroups:usersHiddenFunctionality:notyfyUsers" />
+						<p:ajax event="rowUnselectCheckbox"
+							update=":usersAndGroups:usersHiddenFunctionality:addToGroupButton :usersAndGroups:usersHiddenFunctionality:notyfyUsers" />
+						<p:ajax event="page"
+							onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+							oncomplete="disableAjaxProgress('.dashboardFirstTabTable');" />
+						<p:ajax event="filter"
+							onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+							oncomplete="countUpdater.jq.click(); disableAjaxProgress('.dashboardFirstTabTable');" />
+						<p:ajax event="sort"
+							onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+							oncomplete="disableAjaxProgress('.dashboardFirstTabTable');" />
+					</p:dataTable>
+				</h:form>
+				<div class="itemPerPageBottom">
+					<p:commandButton id="itemNumberUserUpdater" style="display:none;"
+						widgetVar="itemNumberUserUpdater" value=""
+						update=":usersAndGroups:itemNumberUser" />
+					<h:outputText id="itemNumberUser" class="itemsPerPageText"
+						value="#{common.items_per_page_showing} #{usersListBackingBean.usersLazyModel.numberOfVisibleUsers} #{common.items_per_page_showing_of} #{usersListBackingBean.usersLazyModel.rowCount} #{common.items_per_page_showing_items}" />
+					<span class="itemsPerPageText">#{common.items_per_page}</span>
+					<p:selectOneMenu styleClass="selectItemsPerPageBottom"
+						widgetVar="selectVarBottomFirstTab">
+						<f:selectItem itemLabel="10" itemValue="10" />
+						<f:selectItem itemLabel="20" itemValue="20" />
+						<f:selectItem itemLabel="30" itemValue="30" />
+						<p:ajax event="change" 
+							onstart="itemPerPageSelectBottom('usersListTable', true);"
+							oncomplete="itemNumberUserUpdater.jq.click();"></p:ajax>
+					</p:selectOneMenu>
+				</div>
+			</p:tab>
+
+			<p:tab id="userGroups" titleStyleClass="groupsTitle"
+				title="#{common.group_managment} (#{groupListBackingBean.lazyModel.rowCount})">
+				<h:outputText
+					value="#{common.group_managment} (#{groupListBackingBean.lazyModel.rowCount})"
+					id="groupsCount" styleClass="groupsCount" style="display: none;" />
+				<p:commandButton id="groupCountUpdater" style="display:none;"
+						widgetVar="groupCountUpdater" value=""
+						update=":usersAndGroups:groupsCount"
+						oncomplete="$('.groupsTitle a').text($('.groupsCount').text());"/>
+				<div class="groups">
+					<div class="groupFunctionalityHeader">
+						<div class="createGroupButtonWrapper">
+							<div class="createGroupButton">
+								<p:commandButton styleClass="groupButton"
+									action="#{groupEditBackingBean.resetChanges}"
+									value="#{common.add_group}"
+									update=":usersAndGroups:groupEditDialog"
+									onclick=" $('[id$=createEditGroupDialog] .ui-dialog-title').text('#{common.group_create_dialog}') "
+									oncomplete="groupValidation.init(); groupEditDialog.show(); return false;" />
+							</div>
+						</div>
+						<div id="popUpDialogs">
+							<!-- Groups create/edit modal window -->
+							<p:dialog header="#{common.group_create_dialog}"
+								widgetVar="groupEditDialog" modal="true" resizable="false"
+								styleClass="addPeopleInInvite" id="createEditGroupDialog">
+								<h:form id="groupEditDialog">
+									<div class="autocompleteContainer">
+										<div class="groupNameContainer">
+											<h:outputLabel for="groupName" value="#{common.group_title}" />
+											<p:inputText id="groupName"
+												validator="#{groupEditBackingBean.validateLength}"
+												widgetVar="inputTitle"
+												value="#{groupEditBackingBean.groupTitle}">
+												<p:ajax event="keyup" render="groupNameMessage"
+													update="groupNameMessage"
+													oncomplete="groupValidation.init();groupValidation.validate(args.isValidated);">
+												</p:ajax>
+											</p:inputText>
+
+											<ui:remove>#{message.editEventTitleValidationFail}</ui:remove>
+
+											<div class="validationCharacter">
+												<div>
+													<h:message id="groupNameMessage" for="groupName" />
+												</div>
+											</div>
+										</div>
+										<h:outputLabel value="#{message.select_location}"
+											styleClass="locationLabel" />
+										<div class="changeLocationButton">
+											<p:selectOneMenu id="changeLocationDropDown"
+												value="#{groupEditBackingBean.selectedLocation}"
+												converter="locationConverter"
+												styleClass="changeLocation">
+												<f:selectItem itemLabel="All" />
+												<f:selectItems value="#{groupEditBackingBean.availableLocation}"
+													var="loc" itemLabel="#{loc.name}" itemValue="#{loc}" />
+												<p:ajax event="change"></p:ajax>
+											</p:selectOneMenu>
+										</div>
+										<div class="groupAddUsers">
+											<h:outputLabel for="groupEditDialogContent"
+												styleClass="groupDialogContent"
+												value="#{message.selectFromAvailableUsers}" />
+											<p:autoComplete id="groupEditDialogContent"
+												completeMethod="#{groupEditBackingBean.handleUsersComplete}"
+												var="user" itemLabel="#{user.login}" itemValue="#{user}"
+												converter="userConverter" forceSelection="true"
+												minQueryLength="3" delay="1">
+												<p:ajax event="itemSelect"
+													listener="#{groupEditBackingBean.handleUsersSelect}"
+													onsuccess="groupValidation.resetInput();"
+													update="usersGroupDialogTable" />
+											</p:autoComplete>
+
+											<h:panelGroup id="usersGroupDialogTable" layout="block"
+												styleClass="selectedUsers">
+												<ui:repeat value="#{groupEditBackingBean.users}"
+													var="autocompleteUser">
+													<div class="selectedUser">
+														<h:outputText
+															value="#{autocompleteUser.firstName} #{autocompleteUser.lastName}" />
+														<p:commandButton value="x"  immediate="true"
+															actionListener="#{groupEditBackingBean.deleteAutocompleteUser(autocompleteUser)}"
+															update=":usersAndGroups:groupEditDialog:usersGroupDialogTable" />
+													</div>
+												</ui:repeat>
+											</h:panelGroup>
+										</div>
+									</div>
+									<div class="dialogFooter">
+										<div>
+											<p:commandButton value="#{message.save}" ajax="true"
+												id="saveButton"
+												oncomplete="groupValidation.hideIfSuccces(xhr, status, args); groupCountUpdater.jq.click();"
+												type="submit"
+												actionListener="#{groupEditBackingBean.saveGroup}"
+												update=":usersAndGroups:formGroups :usersAndGroups:form :usersAndGroups:groupEditDialog" />
+										</div>
+										<div>
+											<p:commandButton value="#{message.cancel}" ajax="true"
+												oncomplete="groupEditDialog.hide();"
+												update=":usersAndGroups:groupEditDialog"
+												actionListener="#{groupEditBackingBean.resetChanges}" />
+										</div>
+									</div>
+								</h:form>
+								<p:ajax event="close" update=":usersAndGroups:groupEditDialog"
+									listener="#{groupEditBackingBean.resetChanges}" />
+							</p:dialog>
+							<!-- Groups subscribe to category modal window -->
+							<p:dialog id="subscribe_dlg" widgetVar="subscribeDialog"
+								modal="true" styleClass="moveEventDialog"
+								header="#{common.choose_categories}" resizable="false"
+								dynamic="true">
+								<h:form id="treeform">
+									<p:tree id="treeSingle"
+										selection="#{subscribeToBackingBean.selectedCategoryNodes}"
+										styleClass="categoryTree"
+										value="#{subscribeToBackingBean.categoriesRoot}" var="node"
+										selectionMode="checkbox">
+										<p:treeNode>
+											<h:commandLink
+												value="#{contentTranslationController.translate(node.name)}"
+												styleClass="#{categoryTree.getStyleClassForEventTree(node)}"
+												disabled="true" />
+										</p:treeNode>
+										<p:ajax event="select"
+											listener="#{subscribeToBackingBean.select(node)}"
+											update=":usersAndGroups:subscribeCategoryButton @this" />
+										<p:ajax event="unselect"
+											update=":usersAndGroups:subscribeCategoryButton @this" />
+										<p:ajax event="expand"
+											listener="#{subscribeToBackingBean.expand(node)}" />
+										<p:ajax event="collapse"
+											listener="#{subscribeToBackingBean.collapse(node)}" />
+									</p:tree>
+								</h:form>
+								<div class="eventsListMoveButtonWrapper">
+									<p:commandButton id="subscribeCategoryButton"
+										value="#{common.subscribe}"
+										disabled="#{!subscribeToBackingBean.isCategorySelected()}"
+										action="#{subscribeToBackingBean.subscribe()}" ajax="true"
+										onclick="subscribeDialog.hide();"
+										update=":usersAndGroups:subscribe_dlg" />
+								</div>
+								<p:ajax event="close"
+									listener="#{subscribeToBackingBean.cleanTree()}"
+									update=":usersAndGroups:subscribe_dlg" />
+							</p:dialog>
+						</div>
+					</div>
+					<div class="dashboardFiltersWrapper">
+						<div id="keywordFilter" onkeypress="disableReturnKeyPress();">
+							<p:inputText id="globalFilter" styleClass="keywordFilter"
+								style="width: 150px;"
+								onkeyup="quickSearchKeyUp({input: this, searchFoo: hidenFilterSearch, $filter: $('.hidenFilterInput'), tableVar: GLDT});"/>
+							<p:watermark value="#{common.attachments_quick_search}"
+								for="globalFilter"></p:watermark>
+						</div>
+						<h:form id="onlyMyFilter">
+							<p:selectBooleanCheckbox
+								itemLabel="#{common.show_only_my_groups}"
+								value="#{groupListBackingBean.onlyMyGroups}"
+								styleClass="onlyMyCheckBox">
+								<p:ajax event="change"
+									update=":usersAndGroups:formGroups"
+									onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+									oncomplete="groupCountUpdater.jq.click(); disableAjaxProgress('.dashboardFirstTabTable');" />
+							</p:selectBooleanCheckbox>
+						</h:form>
+						<div class="groupHiddenFunctionality">
+							<h:form id="groupHiddenFunctionality" class="hiddenFunctionality">
+								<div id="subscribeToButton">
+									<div class="subscribeTo">
+										<p:commandButton ajax="true"
+											disabled="#{!groupListBackingBean.readyToWorkWithGroup}"
+											id="groupSubscribeButton" styleClass="groupButton"
+											value="#{common.subscribe_to_category}"
+											update=":usersAndGroups:treeform"
+											onclick="subscribeDialog.show();">
+											<f:setPropertyActionListener
+												target="#{subscribeToBackingBean.selectedGroups}"
+												value="#{usersListBackingBean.selectedGroups}" />
+										</p:commandButton>
+									</div>
+								</div>
+								<div class="notifyMenuWrapper">
+									<p:selectOneMenu
+										disabled="#{!groupListBackingBean.readyToWorkWithGroup}"
+										id="groupNotifyMenu" styleClass="selectNotifyAction"
+										ajax="true">
+										<f:selectItem itemLabel="#{common.notify_about_event}" />
+										<f:selectItem itemLabel="#{common.notify_about_category}" />
+									</p:selectOneMenu>
+								</div>
+							</h:form>
+						</div>
+					</div>
+					<h:form id="formGroups">
+						<p:dataTable id="groupTable" var="group" widgetVar="GLDT"
+							styleClass="tableClass dashboardFirstTabTable groupsListTable"
+							value="#{groupListBackingBean.lazyModel}" lazy="true"
+							paginator="true" rows="#{groupListBackingBean.resultsPerPage}"
+							rowsPerPageTemplate="10,20,30"
+							selection="#{groupListBackingBean.selectedGroups}"
+							emptyMessage="#{common.no_records_found}"
+							sortBy="#{group.group_name}">
+
+							<p:column selectionMode="multiple"
+								styleClass="checkBoxEventToAproveHead" />
+
+							<p:column headerText="#{common.groupName}"
+								sortBy="#{group.group_name}" styleClass="titleEventToAproveHead"
+								filterBy="#{group.group_name}" filterStyle="display: none !important"
+								filterStyleClass="hidenFilterInput">
+								<h:link value="#{group.group_name}" outcome="group-details">
+									<f:param name="id" value="#{group.id}"></f:param>
+								</h:link>
+							</p:column>
+
+							<p:column headerText="#{common.numberOfMembers}"
+								sortBy="#{group.subscribed_users.size()}"
+								styleClass="authorEventToAproveHead">
+								<h:outputText value="#{group.subscribed_users.size()}" />
+							</p:column>
+
+							<p:column headerText="#{common.subscriptions}"
+								styleClass="authorEventToAproveHead">
+								<h:outputText value="-" />
+							</p:column>
+
+							<p:column headerText="#{common.group_created}"
+								sortBy="#{group.created}" styleClass="authorEventToAproveHead">
+								<h:outputText value="#{group.created}" />
+							</p:column>
+
+							<p:column headerText="#{common.group_modified}"
+								sortBy="#{group.last_modified}"
+								styleClass="authorEventToAproveHead">
+								<h:outputText value="#{group.last_modified}" />
+							</p:column>
+
+							<p:column styleClass="actionEventToAproveHead">
+								<p:menuButton value=""
+									styleClass="dropDownActionEventToAproveHead">
+									<p:menuitem value="#{common.group_edit}"
+										onclick=" $('[id$=createEditGroupDialog] .ui-dialog-title').text('#{common.group_edit_dialog}')"
+										oncomplete="groupValidation.init(); groupEditDialog.show(); "
+										update=":usersAndGroups:groupEditDialog"
+										action="#{groupEditBackingBean.initGroup(group.id)}">
+									</p:menuitem>
+									<p:menuitem value="#{common.subscribe_to_category}"
+										oncomplete="subscribeDialog.show();"
+										update=":usersAndGroups:treeform">
+										<f:setPropertyActionListener
+											target="#{subscribeToBackingBean.groupIdToSubscribe}"
+											value="#{group.id}" />
+									</p:menuitem>
+									<p:menuitem value="#{common.notify_about_event}" />
+									<p:menuitem value="#{common.notify_about_category}" />
+									<p:menuitem value="#{common.group_remove}" ajax="true"
+										action="#{groupListBackingBean.deleteGroupById(group.id)}"
+										onclick="if (!confirm('#{common.confirm_deleting}')) return false"
+										onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+										oncomplete="groupCountUpdater.jq.click(); disableAjaxProgress('.dashboardFirstTabTable');"
+										update=":usersAndGroups:formGroups :usersAndGroups:form">
+									</p:menuitem>
+								</p:menuButton>
+							</p:column>
+
+							<p:ajax event="toggleSelect"
+								update=":usersAndGroups:groupHiddenFunctionality:groupSubscribeButton :usersAndGroups:groupHiddenFunctionality:groupNotifyMenu" />
+							<p:ajax event="rowSelectCheckbox"
+								update=":usersAndGroups:groupHiddenFunctionality:groupSubscribeButton :usersAndGroups:groupHiddenFunctionality:groupNotifyMenu" />
+							<p:ajax event="rowUnselectCheckbox"
+								update=":usersAndGroups:groupHiddenFunctionality:groupSubscribeButton :usersAndGroups:groupHiddenFunctionality:groupNotifyMenu" />
+							<p:ajax event="page"
+								onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+								oncomplete="disableAjaxProgress('.dashboardFirstTabTable');" />
+							<p:ajax event="filter"
+								onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+								oncomplete="groupCountUpdater.jq.click(); disableAjaxProgress('.dashboardFirstTabTable');" />
+							<p:ajax event="sort"
+								onstart="enableAjaxProgress('.dashboardFirstTabTable');"
+								oncomplete="disableAjaxProgress('.dashboardFirstTabTable');" />
+						</p:dataTable>
+					</h:form>
+					<div class="itemPerPageBottom">
+						<p:commandButton id="itemNumberGroupUpdater" style="display:none;"
+							widgetVar="itemNumberGroupUpdater" value=""
+							update=":usersAndGroups:itemNumberGroup" />
+						<h:outputText id="itemNumberGroup" class="itemsPerPageText"
+							value="#{common.items_per_page_showing} #{groupListBackingBean.numberOfVisibleGroups()} #{common.items_per_page_showing_of} #{groupListBackingBean.lazyModel.rowCount} #{common.items_per_page_showing_items}" />
+						<span class="itemsPerPageText">#{common.items_per_page}</span>
+						<p:selectOneMenu styleClass="selectItemsPerPageBottom"
+							widgetVar="selectVarBottomSecondTab">
+							<f:selectItem itemLabel="10" itemValue="10" />
+							<f:selectItem itemLabel="20" itemValue="20" />
+							<f:selectItem itemLabel="30" itemValue="30" />
+							<p:ajax event="change"
+								onstart="itemPerPageSelectBottom('groupsListTable', false);"
+								oncomplete="itemNumberGroupUpdater.jq.click();"></p:ajax>
+						</p:selectOneMenu>
+					</div>
+				</div>
+			</p:tab>
+		</p:tabView>
+		<script id='message-data' type='text/javascript'>
+			var empty_message = "#{errors['group.validation.empty']}";
+		</script>
+	</ui:define>
+</ui:composition>

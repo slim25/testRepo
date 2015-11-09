@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:pe="http://primefaces.org/ui/extensions"
+	xmlns:p="http://primefaces.org/ui" xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions"
+	xmlns:menu="http://java.sun.com/jsf/composite/components/menu"
+	xmlns:preview="http://java.sun.com/jsf/composite/components/preview"
+	template="/WEB-INF/templates/default.xhtml">
+
+	<ui:define name="content">
+		<h:outputStylesheet name="css/backEnd/eventEdit.css" />
+		<h:outputScript name="js/backEnd/event/edit_page_fix.js" />
+		<h:outputScript name="js/backEnd/event/be_editEvent.js" />
+		<div class="editEventContent" id="editEvent">
+			<div class="eventLogoToUpload">
+				<h:form id="eventLogo">
+					<div class="eventLogo">
+						<p:graphicImage
+							rendered="#{eventEditBackingBean.event.hasLogo}"
+							value="#{eventLogoPath}#{eventEditBackingBean.event.id}"
+							onmouseover="$('.eventLogoToUpload .logoButton').show();"
+							onmouseout="$('.eventLogoToUpload .logoButton').hide();" />
+						<p:graphicImage
+							rendered="#{!eventEditBackingBean.event.hasLogo}"
+							value="../../resources/img/events/big-event/event-logo.png"
+							onmouseover="$('.eventLogoToUpload .logoButton').show();"
+							onmouseout="$('.eventLogoToUpload .logoButton').hide();" />
+						<p:commandButton value="X" actionListener="#{eventEditBackingBean.deleteLogo}"
+							rendered="#{eventEditBackingBean.deleteLogoAvailable()}"
+							onmouseover="$('.eventLogoToUpload .logoButton').show();"
+							onmouseout="$('.eventLogoToUpload .logoButton').hide();"
+							update=":eventLogo" styleClass="deleteButton logoButton"/>
+						<p:commandButton value="Choose Logo" styleClass="logoUploadButton logoButton"
+							onclick="$('#aaa').click();"
+							onmouseover="$('.eventLogoToUpload .logoButton').show();"
+							onmouseout="$('.eventLogoToUpload .logoButton').hide();" />
+						<input id="aaa" type="file" accept="image/jpeg,image/png,image/gif,image/bmp" onchange="logoUpload(this);" style="display: none"/>
+						<p:fileUpload id="logoUploader" widgetVar="LFU"
+							fileUploadListener="#{eventEditBackingBean.uploadLogo}"							
+							mode="advanced" multiple="false" auto="true"
+							sizeLimit="2000000" allowTypes="/(\.|\/)(gif|jpe?g|png|bmp)$/"
+							invalidFileMessage="Logo must be: *.gif, *.jpeg, *.png or *.bmp"
+							invalidSizeMessage="Logo max size is 2mb" />
+					</div>					
+				</h:form>
+			</div>
+			<h:form id="wizardForm" includeViewParams="true"
+				onkeypress="disableReturnKeyPress()">
+				<div class="contentHeader">#{message.event_details}</div>
+				<p:tabView id="tabView" var="language" value="#{languages}"
+					styleClass="tabsContainer" widgetVar="tabs">
+					<p:tab title="#{language.name}" id="id#{language.name}">
+						<div class="eventTitleContainer">
+							<h:outputLabel for="title" value="#{message.eventTitle}" />
+							<p:inputText style="width: 490px" id="title"
+								value="#{eventEditBackingBean.eventTitle[language]}">
+								<f:validateLength minimum="3" maximum="100" />
+							</p:inputText>
+							<div class="validationCharacter">
+								<div>#{message.editEventTitleValidationFail}</div>
+							</div>
+							<h:message for="title" errorClass="invalid" />
+						</div>
+
+						<div class="eventBriefContainer">
+							<h:outputLabel for="shortDescription"
+								value="#{message.short_desc}" />
+							<p:inputTextarea style="width: 490px" id="shortDescription"
+								value="#{eventEditBackingBean.eventShortDescription[language]}">
+								<f:validateLength minimum="25" maximum="150" />
+							</p:inputTextarea>
+							<div class="validationCharacter">
+								<div>#{message.editEventBriefValidationFail}</div>
+							</div>
+							<h:message for="shortDescription" errorClass="invalid" />
+						</div>
+
+						<div class="eventDescriptionContainer">
+							<h:outputLabel for="longDescription" value="#{message.long_desc}" />
+							<pe:ckEditor id="longDescription" language="en" width="850" height="500"
+								interfaceColor="#AFDBF3" styleClass="be_eventDescription"
+								value="#{eventEditBackingBean.eventLongDescription[language]}"
+								toolbar="[['Cut','Copy','Paste','PasteText','PasteFromWord','-','RemoveFormat','-','Bold','Italic','Underline','Strike','Subscript','Superscript','-','TextColor','BGColor','Blockquote','-','JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock','-','NumberedList','BulletedList','-','Outdent','Indent','-','SpellChecker'],['Format','Font','FontSize','Styles',]]">
+								<f:attribute name="minLength" value="100" />
+								<f:attribute name="maxLength" value="2000" />	
+								
+								<pe:javascript event="initialize" execute="initializeCKEditor();"/>
+															
+							</pe:ckEditor>
+							<div class="validationCharacter">
+								<div>#{message.editEventDescriptionValidationFail}</div>
+							</div>
+							<h:message for="longDescription" errorClass="invalid" />
+						</div>
+					</p:tab>
+				</p:tabView>
+				<h:message for="tabView" errorClass="invalid" />
+				<div class="lowerPartInfoContainer">
+					<hr />
+					<div class="eventAttachmentsContainer" id="attachmentList">
+						<div class="eventAttachmentsUploaded">
+							<h:outputLabel for="attachmentList"
+								value="#{message.attachmentList}" />
+							<div class="acceptFileTypes">
+								(
+								<ui:repeat varStatus="loop"
+									value="#{attachmentStoreController.fileTypes}" var="fileType">
+									<h:outputText value="#{fileType}#{!loop.last ? ', ' : ''}" />
+								</ui:repeat>
+								)
+							</div>
+							<p:panel styleClass="attachmentsPanel" id="attachmentElements">
+								<ui:repeat value="#{eventEditBackingBean.attachments}"
+									var="attachment">
+									<div class="attachmentElement">
+										<div class="fullTitleOfAttachment" style="display: none">
+											#{attachment.title}.#{attachment.type}</div>
+										<h:outputText
+											value="#{attachment.title.length() lt 50 ? attachment.title : attachment.title.substring(0,50).concat(' ... ')}.#{attachment.type}" />
+										<p:commandButton id="delete" value="x"
+											actionListener="#{eventEditBackingBean.deleteAttachment(attachment)}"
+											update=":wizardForm:attachmentElements" />
+									</div>
+								</ui:repeat>
+							</p:panel>
+						</div>
+						<div class="eventAttachmentsToUpload">
+							<p:fileUpload id="attachments" styleClass="uploadFile"
+								fileUploadListener="#{eventEditBackingBean.uploadAttachment}"
+								mode="advanced"
+								update=":wizardForm:messages :wizardForm:attachmentElements"
+								multiple="true" auto="true"
+								sizeLimit="#{attachmentStoreController.fileSizeLimit}"
+								invalidFileMessage="#{message.invalidFileMessage} #{message.allowedFileTypes} #{attachmentStoreController.invalidFileTypeMessage}"
+								invalidSizeMessage="#{message.invalidSizeMessage} #{message.allowedFileSize} #{attachmentStoreController.fileSizeLimitMb}"
+								cancelLabel="#{message.cancel}" label="#{message.choose}"
+								uploadLabel="#{message.upload}" disabled="false"
+								allowTypes="#{attachmentStoreController.acceptedFileTypes}" />
+							<p:growl id="messages" showDetail="true" globalOnly="true" widgetVar="GROWL"/>
+						</div>
+					</div>
+					<hr />
+					<div class="eventCategoryContainer">
+						<h:outputLabel for="category" value="#{message.category}" />
+						<p:selectOneMenu styleClass="be_selectCategory"
+							value="#{eventEditBackingBean.event.category}"
+							converter="categoryConverter" onchange="onCategorySelect()">
+							<f:selectItems value="#{eventEditBackingBean.allCategories}" />
+						</p:selectOneMenu>
+						<h:message for="category" errorClass="invalid" />
+					</div>
+					<hr />
+					<div class="eventCategoryContainer">
+						<h:outputLabel for="type" value="#{message.type}" />
+						<p:selectOneMenu styleClass="be_selectType"
+							value="#{eventEditBackingBean.selectedEventType}"
+						converter="eventTypeConverter">
+							<f:selectItems value="#{eventEditBackingBean.eventType}" var="type" itemLabel="#{type.type_name}" itemValue="#{type}"/>
+						</p:selectOneMenu>
+						<h:message for="type" errorClass="invalid" />
+					</div>
+					<hr />
+					<div class="eventLocationContainer">
+						<div class="validationCharacter">
+							<div>#{message.editLocationsValidationFail}</div>
+						</div>
+						<h:panelGroup id="eventLocationsPanel" layout="block"
+							styleClass="selectedLocations">
+							<h:outputLabel for="eventLocationsPanel"
+								value="#{message.locations}" />
+							<ui:repeat
+								value="#{eventEditBackingBean.eventLocations.toArray()}"
+								var="location">
+								<div class="selectedLocation">
+									<h:outputText value="#{location.name}" />
+									<p:commandButton value="x" oncomplete="validation.validate_all();"
+										actionListener="#{eventEditBackingBean.deleteLocation(location)}"
+										update=":wizardForm:eventLocationsPanel :addLocation_dlg :wizardForm:addLocation" />
+								</div>
+							</ui:repeat>
+							<ui:repeat
+								value="#{eventEditBackingBean.eventAddresses.toArray()}"
+								var="address">
+								<div class="selectedLocation">
+									<h:outputText
+										value="#{eventEditBackingBean.getLocationByAddressId(address.id).name} - #{address.address}" />
+									<p:commandButton value="x"
+										actionListener="#{eventEditBackingBean.deleteAddress(address)}"
+										update=":wizardForm:eventLocationsPanel :addLocationDlgForm:addressDropDown :addLocationDlgForm:locationDropDown" />
+								</div>
+							</ui:repeat>
+						</h:panelGroup>
+						<p:commandButton id="addLocation"
+							disabled="#{eventEditBackingBean.locations.size() == 0}"
+							value="#{message.addLocation}" ajax="true"
+							styleClass="addLocationButton"
+							onclick="addLocationDialog.show();" />
+					</div>
+					<hr />
+					<div class="topEventContainer">
+						<div>#{common.topEvent}</div>
+							<p:selectBooleanCheckbox value="#{eventEditBackingBean.event.topEvent}" styleClass="topEvent">
+							</p:selectBooleanCheckbox>
+					</div>
+					<hr />
+					<div class="eventAttendeesQualificationDurationContainer">
+						<div class="eventMinAttendeesContainer">
+							<h:outputLabel for="minAttendees"
+								value="#{message.min_attendees}" />
+							<p:inputText id="minAttendees"
+								value="#{eventEditBackingBean.event.minAttendee}">
+							</p:inputText>
+							<div class="validationCharacter">
+								<div>#{message.editEventMinAttendeeValidationFail}</div>
+							</div>
+							<div>
+								<h:message for="minAttendees" errorClass="invalid" />
+							</div>
+						</div>
+						<div class="eventMaxAttendeesContainer">
+							<h:outputLabel for="maxAttendees"
+								value="#{message.max_attendees}" />
+							<p:inputText id="maxAttendees"
+								value="#{eventEditBackingBean.event.maxAttendee}">
+							</p:inputText>
+							<div class="validationCharacter">
+								<div>#{message.editEventMaxAttendeeValidationFail}</div>
+							</div>
+							<div>
+								<h:message for="maxAttendees" errorClass="invalid" />
+							</div>
+						</div>
+						<div class="eventLevelWrapper">
+							<div class="eventMinQualificationContainer">
+								<h:outputLabel for="minQualification"
+									value="#{message.qual_min_level}" />
+								<p:inplace id="minInplace" editor="true" toggleable="true"
+									styleClass="minLevel" widgetVar="minLevelPicker">
+									<p:inputText id="minQualification"
+										value="#{eventEditBackingBean.minLevel}" readonly="true">
+									</p:inputText>
+									<div class="minLevelForm">
+										<p:accordionPanel multiple="false" activeIndex="-1"
+											value="#{eventEditBackingBean.levelsGroups}" var="groupName">
+											<p:tab title="#{groupName}-Levels">
+												<p:dataTable styleClass="#{groupName}"
+													value="#{eventEditBackingBean.levelsGroupMap.get(groupName)}"
+													var="level" rowKey="#{level.id}"
+													selection="#{eventEditBackingBean.selectedLevels}">
+													<p:column selectionMode="multiple" />
+													<p:column>
+														#{level.rank} - #{level.title}
+													</p:column>
+													<p:ajax event="rowSelectCheckbox"
+														listener="#{eventEditBackingBean.rowSelectMin}" />
+													<p:ajax event="rowUnselectCheckbox"
+														listener="#{eventEditBackingBean.rowUnSelectMin}" />
+												</p:dataTable>
+											</p:tab>
+										</p:accordionPanel>
+									</div>
+									<p:ajax event="save"
+										listener="#{eventEditBackingBean.updateEventMinLevels}"
+										update="minQualification" />
+									<p:ajax event="cancel"
+										listener="#{eventEditBackingBean.cancel}"
+										update="minQualification" />
+								</p:inplace>
+							</div>
+							<div class="eventMaxQualificationContainer">
+								<h:outputLabel for="maxQualification"
+									value="#{message.qual_max_level}" />
+								<p:inplace editor="true" toggleable="true" styleClass="maxLevel"
+									widgetVar="maxLevelPicker">
+									<p:inputText id="maxQualification"
+										value="#{eventEditBackingBean.maxLevel}" readonly="true">
+									</p:inputText>
+									<div class="maxLevelForm">
+										<p:accordionPanel multiple="false" activeIndex="-1"
+											value="#{eventEditBackingBean.levelsGroups}" var="groupName">
+											<p:tab title="#{groupName}-Levels">
+												<p:dataTable styleClass="#{groupName}"
+													value="#{eventEditBackingBean.levelsGroupMap.get(groupName)}"
+													var="level" rowKey="#{level.id}"
+													selection="#{eventEditBackingBean.selectedLevelsMax}">
+													<p:column selectionMode="multiple" />
+													<p:column>
+														#{level.rank} - #{level.title}
+													</p:column>
+													<p:ajax event="rowSelectCheckbox"
+														listener="#{eventEditBackingBean.rowSelectMax}" />
+													<p:ajax event="rowUnselectCheckbox"
+														listener="#{eventEditBackingBean.rowUnSelectMax}" />
+												</p:dataTable>
+											</p:tab>
+										</p:accordionPanel>
+									</div>
+									<p:ajax event="save"
+										listener="#{eventEditBackingBean.updateEventMaxLevels}"
+										update="maxQualification" />
+									<p:ajax event="cancel"
+										listener="#{eventEditBackingBean.cancel}"
+										update="maxQualification" />
+								</p:inplace>
+							</div>
+						</div>
+						<div class="eventDurationContainer">
+							<h:outputLabel for="duration" value="#{message.duration}" />
+							<p:inputText id="duration"
+								value="#{eventEditBackingBean.event.duration}">
+							</p:inputText>
+							<div class="validationCharacter">
+								<div>#{message.editEventDurationValidationFail}</div>
+							</div>
+							<div>
+								<h:message for="duration" errorClass="invalid" />
+							</div>
+						</div>
+					</div>
+					<hr />
+					<!-- Workaround for trainer, look at .js for details -->
+					<span id="hide-close-btn"
+						removable="#{eventEditBackingBean.canRemoveTrainer()}"
+						user="#{eventEditBackingBean.currentUser.login}"></span>
+					<div class="eventTrainersContainer">
+						<h:outputLabel for="trainers" value="#{message.trainers}" />
+						<p:autoComplete id="trainers"
+							value="#{eventEditBackingBean.event.trainers}" minQueryLength="3"
+							completeMethod="#{eventEditBackingBean.handleTrainersComplete}"
+							var="user" itemLabel="#{user.login}" itemValue="#{user}"
+							converter="userConverter" multiple="true" forceSelection="true">
+							<p:ajax event="itemSelect"
+								listener="#{eventEditBackingBean.handleTrainersSelect}" />
+							<p:ajax event="itemUnselect"
+								listener="#{eventEditBackingBean.handleTrainersUnselect}" />
+						</p:autoComplete>
+						<h:message for="trainers" errorClass="invalid" />
+					</div>
+					<div class="eventAssistantContainer">
+						<h:outputLabel for="assistant" value="#{message.assistants}" />
+						<p:autoComplete id="assistant"
+							value="#{eventEditBackingBean.event.assistant}"
+							completeMethod="#{eventEditBackingBean.handleAssistantsComplete}"
+							dropdown="true" var="user" itemLabel="#{user.login}"
+							itemValue="#{user}" minQueryLength="2"
+							oncomplete="showHideTooltipMessageForAutocompleteAssistant();"
+							converter="userConverter">
+							<p:ajax event="itemSelect"
+								listener="#{eventEditBackingBean.handleAssistantSelect}"
+								oncomplete="setAssistatValid()" />
+						</p:autoComplete>
+						<div class="validationCharacter">
+							<div>#{message.editEventAssistantValidationFail}</div>
+						</div>
+						<h:outputLabel for="assistant" class="noAssistantsFound" value="#{message.no_users_available}" />
+						<h:message for="assistant" errorClass="invalid" />
+					</div>
+					<hr />
+					<div class="eventAttendeesContainer">
+						<h:outputLabel for="attendees" value="#{message.attendees}" />
+						<p:autoComplete id="attendees"
+							value="#{eventEditBackingBean.event.attendees}"
+							minQueryLength="3"
+							completeMethod="#{eventEditBackingBean.handleAttendeesComplete}"
+							var="user" itemLabel="#{user.login}" itemValue="#{user}"
+							converter="userConverter" multiple="true" forceSelection="true">
+							<p:ajax event="itemSelect"
+								listener="#{eventEditBackingBean.handleAttendeesSelect}" />
+							<p:ajax event="itemUnselect"
+								listener="#{eventEditBackingBean.handleAttendeesUnselect}" />
+						</p:autoComplete>
+						<h:message for="attendees" errorClass="invalid" />
+					</div>
+					<h:inputHidden id="id" value="#{eventEditBackingBean.event.id}" />
+				</div>
+				<div class="eventButtonsFooter">
+					<div>
+						<p:commandButton value="#{message.eventSave}" ajax="false"
+							id="saveButton" action="#{eventEditBackingBean.saveOrUpdate}" />
+					</div>
+					<div>
+						<p:button value="#{message.beck_to_all_events}"
+							outcome="event-list" />
+					</div>
+				</div>
+			</h:form>
+
+		</div>
+		<p:dialog id="addLocation_dlg" widgetVar="addLocationDialog"
+			modal="true" styleClass="addLocation" resizable="false"
+			dynamic="true">
+			<h:form id="addLocationDlgForm">
+				<div class="locationButtonWrapper">
+					<div class="locationMenu">
+						<h:outputLabel for="locationDropDown"
+							styleClass="selectMenuLabels" value="#{message.chooseLocation}" />
+						<p:selectOneMenu id="locationDropDown"
+							value="#{eventEditBackingBean.selectedLocationId}"
+							styleClass="changeLocation">
+							<f:selectItems value="#{eventEditBackingBean.locations}"
+								var="location" itemLabel="#{location.name}"
+								itemValue="#{location.id}" />
+							<p:ajax event="change"
+								listener="#{eventEditBackingBean.reloadAddresses()}"
+								update=":addLocationDlgForm:addressDropDown" />
+						</p:selectOneMenu>
+					</div>
+					<div class="addressMenu">
+						<h:outputLabel for="addressDropDown" styleClass="selectMenuLabels"
+							value="#{message.chooseAddress}" />
+						<p:selectOneMenu id="addressDropDown"
+							value="#{eventEditBackingBean.selectedAddressId}"
+							styleClass="changeLocation">
+							<f:selectItems value="#{eventEditBackingBean.addresses}"
+								var="address" itemLabel="#{address.address}"
+								itemValue="#{address.id}" />
+							<p:ajax event="change" />
+						</p:selectOneMenu>
+					</div>
+				</div>
+				<div class="dialogFooter">
+					<div>
+						<p:commandButton value="#{message.add}" id="addButton"
+							oncomplete="addLocationDialog.hide(); validation.validate_all();"
+							actionListener="#{eventEditBackingBean.addLocation()}"
+							update=":addLocation_dlg :wizardForm:eventLocationsPanel :wizardForm:addLocation" />
+					</div>
+					<div>
+						<p:commandButton value="#{message.cancel}" ajax="true"
+							oncomplete="addLocationDialog.hide();" />
+					</div>
+				</div>
+			</h:form>
+		</p:dialog>
+	</ui:define>
+</ui:composition>

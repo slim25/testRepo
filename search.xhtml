@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:c="http://java.sun.com/jsp/jstl/core"
+	xmlns:p="http://primefaces.org/ui">
+<h:head>
+</h:head>
+<h:body>
+	<p:panel styleClass="be_mainSearch">
+		<p:autoComplete id="search" value="#{userEventSearchController.selectedResult}"
+			alt="Site search" minQueryLength="3"
+			completeMethod="#{userEventSearchController.complete}" var="found"
+			itemLabel="#{found.name}" itemValue="#{found}"
+			converter="searchResultConverter" forceSelection="true"
+			onstart="startSiteSearch();"
+			oncomplete="setState();stopSiteSearch();">
+			<p:ajax event="itemSelect" listener="#{userEventSearchController.handleSelect}"/>
+			<f:facet name="itemtip">
+			<div id="autocomplete-item-type" class="visibility:hidden;">#{found.type}</div>
+			<div id="autocomplete-item-properties" class="visibility:hidden;">${found.properties}</div>
+			</f:facet>
+		</p:autoComplete>
+		<div class="searchIcon"></div>
+	</p:panel>
+</h:body>
+</html>

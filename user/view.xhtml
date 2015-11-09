@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	template="/WEB-INF/templates/default.xhtml"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:s="http://jboss.com/products/seam/taglib"
+	xmlns:p="http://primefaces.org/ui">
+	<f:metadata>
+		<f:viewParam id="id" name="id" required="false"
+			value="#{userDetailsBackingBean.id}" />
+		<f:event type="preRenderView"
+			listener="#{userDetailsBackingBean.initRequestParam}" />
+	</f:metadata>
+	<ui:define name="content">
+		<h:outputStylesheet name="css/backEnd/element/table.css" />
+		<h:outputStylesheet name="css/backEnd/element/paginator.css" />
+		<h:outputStylesheet name="css/backEnd/usersList.css" />
+		<h:outputStylesheet name="css/backEnd/groupEdit.css" />
+		<h:outputStylesheet name="css/backEnd/element/button.css" />
+
+		<h:outputStylesheet name="css/backEnd/userDetails.css" />
+		<div class="userDetailsWrapper ">
+			<div class="userNamesWrapper">
+				<div class="rightcorner-button-wrapper">
+					<p:button value="#{message.editUser}" outcome="user-edit">
+						<f:param name="id" value="#{userDetailsBackingBean.id}" />
+					</p:button>
+				</div>
+				<h:panelGroup id="editGroup">
+					<div class="userWrapper">
+						<h:link value="#{common.users_list_label} "
+							styleClass="fullUserName" outcome="users" />
+						<h:outputText value="#{common.user_details_label}"
+							styleClass="fullUserName" />
+					</div>
+				</h:panelGroup>
+			</div>
+			<div class="userDetails">
+				<div id="user-profile">
+					<div id="user-info">
+						<div id="user-profile">
+							<div id="user-avatar-wrapper">
+								<img src="#{userDetailsBackingBean.prepareAvatarUrl()}"
+									onError="#{staticPath}/resources/img/trainer_logo.png" />
+							</div>
+							<div id="settings-page-user-wrapper">
+								<div id="user-title">
+									<span>#{userDetailsBackingBean.user.role}</span>
+								</div>
+
+								<div id="user-name" class="item-user">
+
+									<h:outputText value="#{userDetailsBackingBean.user.firstName} " />
+									<h:outputText value="#{userDetailsBackingBean.user.lastName}" />
+								</div>
+								<div class="settings-page-item-user">
+									<span class="item-main-label">#{common.user_title}</span>
+									<h:outputText id="title_user" styleClass="item-label"
+										value="#{userDetailsBackingBean.user.title}, #{userDetailsBackingBean.user.level}" />
+								</div>
+								<div class="settings-page-item-user">
+									<span class="item-main-label">#{common.user_location}</span>
+									<h:outputText styleClass="item-label"
+										value="#{userDetailsBackingBean.user.location}" />
+								</div>
+								<div class="settings-page-item-user">
+									<span class="item-main-label">#{common.user_mail}</span>
+									<div class="item-label">
+										<div class="email">
+											<a href="mailto:#{userDetailsBackingBean.user.login}">#{userDetailsBackingBean.user.login}</a>
+										</div>
+									</div>
+
+								</div>
+
+								<div class="button-wrapper">
+									<div id="nearest-event-wrapper">
+										<div id="nearest-event-flag">#{common.nearest_subscription}</div>
+									</div>
+									<div id="nearest-event-info">
+
+										<div id="date-invite">
+										<h:outputText rendered="#{!userDetailsBackingBean.hasNextEvent}"
+												value="#{common.no_created}" />
+											<h:outputText rendered="#{userDetailsBackingBean.hasNextEvent}"
+												value="#{userDetailsBackingBean.formatDateFrom(userDetailsBackingBean.nearestInvite.dateFrom)}," />
+										</div>
+										<div id="title-near-event">
+											<h:form>
+												<h:link styleClass="event-title" 
+													value="#{contentTranslationController.translate(userDetailsBackingBean.nearestInvite.event.title)}"
+													outcome="event-view">
+													<f:param name="id"
+														value="#{userDetailsBackingBean.nearestInvite.event.id}" />
+												</h:link>
+											</h:form>
+										</div>
+									</div>
+								</div>
+								<div class="button-wrapper">
+									<div id="nearest-event-wrapper">
+										<div id="nearest-event-flag"><span class="text_next_event">#{common.nearest_own_event}</span></div>
+									</div>
+									<div id="nearest-event-info">
+
+										<div id="date-invite">
+										<h:outputText rendered="#{!userDetailsBackingBean.hasNextOwnEvent}"
+												value="#{common.no_created}"  />
+										
+											<h:outputText rendered="#{userDetailsBackingBean.hasNextOwnEvent}"
+												value="#{userDetailsBackingBean.formatDateFrom(userDetailsBackingBean.nearestOwnInvite.dateFrom)}," />
+										</div>
+										<div id="title-near-event">
+											<h:form>
+												<h:link styleClass="event-title" 
+													value="#{contentTranslationController.translate(userDetailsBackingBean.nearestOwnInvite.event.title)}"
+													outcome="event-view">
+													<f:param name="id"
+														value="#{userDetailsBackingBean.nearestOwnInvite.event.id}" />
+												</h:link>
+											</h:form>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				</div>
+			</div>
+			<div class="userListTab">
+				<p:tabView id="tabView" styleClass="tabView ">
+
+					<p:tab id="subscriptionsTab"
+						title="#{common.owned_events} (#{userDetailsBackingBean.ownUserEvents.size()})"
+						titleStyleClass="subscriptionsTab tab" rendered="#{userDetailsBackingBean.showOwnedEvents}">
+						<h:form>
+							<ui:repeat var="ownEvent"
+								value="#{userDetailsBackingBean.ownUserEvents}">
+								<div class="event_category">
+									<h:outputText
+										value="#{contentTranslationController.translate(ownEvent.category.name)}" />
+								</div>
+								<div class="event-block">
+									<h:link styleClass="event-title"
+										value="#{contentTranslationController.translate(ownEvent.title)}"
+										outcome="event-view">
+										<f:param name="id" value="#{ownEvent.id}" />
+									</h:link>
+								</div>
+							</ui:repeat>
+						</h:form>
+					</p:tab>
+					<p:tab id="passedEvent"
+						title="#{common.passed_events} (#{userDetailsBackingBean.passedInvite.size()})"
+						titleStyleClass="subscriptionsTab tab">
+						<h:form>
+							<ui:repeat var="passedEvent"
+								value="#{userDetailsBackingBean.passedInvite}">
+								<div class="event_category">
+									<h:outputText
+										value="#{contentTranslationController.translate(passedEvent.event.category.name)}" />
+								</div>
+								<div class="event-block">
+									<h:link styleClass="event-title"
+										value="#{contentTranslationController.translate(passedEvent.event.title)}"
+										outcome="event-view">
+										<f:param name="id" value="#{passedEvent.event.id}" />
+									</h:link>
+									<h:outputText value="#{userDetailsBackingBean.formatDateFrom(passedEvent.dateFrom)}"
+										styleClass="date-event" />
+									<div class="event-trainers">
+										<ui:repeat var="trainer"
+											value="#{userDetailsBackingBean.getTrainersByEvent(passedEvent.event)}">
+											<div class="event-trainers-list">
+												<h:outputText value="#{trainer.firstName} " />
+												<h:outputText value="#{trainer.lastName}" />
+											</div>
+										</ui:repeat>
+									</div>
+								</div>
+							</ui:repeat>
+						</h:form>
+					</p:tab>
+					<p:tab id="eventsStatistic" title="#{common.events_statistic}"
+						titleStyleClass="subscriptionsTab tab">
+
+					</p:tab>
+					<p:tab id="categoryStatistic" title="#{common.category_statistic}"
+						titleStyleClass="subscriptionsTab tab">
+
+					</p:tab>
+				</p:tabView>
+
+			</div>
+		</div>
+
+	</ui:define>
+</ui:composition>

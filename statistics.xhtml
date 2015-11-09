@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	template="/WEB-INF/templates/default.xhtml"
+	xmlns:p="http://primefaces.org/ui">
+	<ui:define name="content">
+
+		<h:outputStylesheet name="css/backEnd/element/table.css" />
+		<h:outputStylesheet name="css/backEnd/element/paginator.css" />
+		<h:outputStylesheet name="css/backEnd/dashboard.css" />
+		<h:outputStylesheet name="css/backEnd/statistics.css" />
+
+		<div class="statisticsWrapper">
+			<div class="dateFiltersWrapper">
+				<p:calendar id="calendarFrom"
+					styleClass="dashboardFromDateFilter dateFilter"
+					value="#{statisticsBackingBean.dateFilterFrom}"
+					pattern="dd.MM.yyyy">
+					<p:ajax event="dateSelect"
+						listener="#{statisticsBackingBean.updateStats}"
+						onstart="enableAjaxProgress('.statisticsTable')"
+						oncomplete="disableAjaxProgress('.statisticsTable')"
+						update=":stats " />
+				</p:calendar>
+				<p:watermark value="#{common.dashboard_submit_date_filter_from}"
+					for="calendarFrom"></p:watermark>
+				<p:calendar id="calendarTo"
+					styleClass="dashboardToDateFilter dateFilter"
+					value="#{statisticsBackingBean.dateFilterTo}" pattern="dd.MM.yyyy">
+					<p:ajax event="dateSelect"
+						listener="#{statisticsBackingBean.updateStats}"
+						onstart="enableAjaxProgress('.statisticsTable')"
+						oncomplete="disableAjaxProgress('.statisticsTable')"
+						update=":stats " />
+				</p:calendar>
+				<p:watermark value="#{common.dashboard_submit_date_filter_to}"
+					for="calendarTo"></p:watermark>
+			</div>
+
+			<p:tabView id="stats" styleClass="pTabApprove" dynamic="true" 
+				activeIndex="#{statisticsBackingBean.activeTab}" cache="false">
+				<!-- GENERAL STATISTICS SECTION -->
+				<p:ajax event="tabChange"
+					listener="#{statisticsBackingBean.onChange}"
+					update="generalStats, eventTypeStats, categoryStats"
+					onstart="enableAjaxProgress('.pTabApprove')"
+					oncomplete="disableAjaxProgress('.pTabApprove')" />
+				<p:tab id="generalStats" title="GENERAL">
+
+					<h:panelGrid columns="2" styleClass="statisticsTable" id="generalStatsTable">
+						<f:facet name="header">
+							<h:outputText
+								value="Statistics report for
+								#{locationBackingBean.selectedLocation == null ? 'All locations'
+								: locationBackingBean.selectedLocation.name}" />
+						</f:facet>
+
+						<h:panelGroup>Total count of all invites (created and conducted)</h:panelGroup>
+						<h:panelGroup>
+							<h:outputText value="#{statisticsBackingBean.totalInvitesStats}" />
+						</h:panelGroup>
+
+						<h:panelGroup>Total count of attendees who accepted training and who
+								visited training.</h:panelGroup>
+						<h:panelGroup>
+							<h:outputText value="#{statisticsBackingBean.acceptVisitedStats}" />
+						</h:panelGroup>
+
+						<h:panelGroup>Coverage - count feedbacks/count visited attendees</h:panelGroup>
+						<h:panelGroup>
+							<h:outputText value="#{statisticsBackingBean.coverageStats}" />
+						</h:panelGroup>
+
+						<h:panelGroup>Average assessment of all trainings</h:panelGroup>
+						<h:panelGroup>
+							<h:outputText
+								value="#{statisticsBackingBean.averageAssessmentStats}" />
+						</h:panelGroup>
+
+						<h:panelGroup>Attendance - total count of visited attendees/total
+								count of all attendees</h:panelGroup>
+						<h:panelGroup>
+							<h:outputText value="#{statisticsBackingBean.attendanceStats}" />
+						</h:panelGroup>
+
+						<h:panelGroup>Mhours - sum of (duration*attendees) of all trainings</h:panelGroup>
+						<h:panelGroup>
+							<h:outputText
+								value="#{statisticsBackingBean.trainingDurationStats}" />
+						</h:panelGroup>
+					</h:panelGrid>
+				</p:tab>
+				<!-- / END OF GENERAL STATISTICS SECTION -->
+
+				<!-- Important to keep this id synchronized with bean -->
+				<p:tab id="eventTypeStats" title="EVENT TYPES">
+					<p:panel header="Something went wrong :("
+						rendered="#{empty statisticsBackingBean.typeStats}">  
+					Cannot found any info in location - 
+					#{locationBackingBean.selectedLocation == null ? 'All locations' : locationBackingBean.selectedLocation.name} 
+					from date: <b> <h:outputText
+								value="#{statisticsBackingBean.dateFilterFrom}">
+								<f:convertDateTime pattern="dd/MM/yyyy" />
+							</h:outputText>
+						</b>
+					to date: <strong> <h:outputText
+								value="#{statisticsBackingBean.dateFilterTo}">
+								<f:convertDateTime pattern="dd/MM/yyyy" />
+							</h:outputText>
+						</strong>
+					</p:panel>
+					<h:dataTable var="singleStat"
+						value="#{statisticsBackingBean.typeStats}"
+						rendered="#{not empty statisticsBackingBean.typeStats}"
+						styleClass="statisticsTable">
+						<f:facet name="header">
+							<h:outputText
+								value="Statistics report for event type at #{locationBackingBean.selectedLocation == null ? 'All locations'
+								: locationBackingBean.selectedLocation.name}" />
+						</f:facet>
+						<h:column>
+							<f:facet name="header">
+								<h:outputText value="Event type" />
+							</f:facet>
+							<h:outputText value="#{singleStat.key.type_name}" />
+						</h:column>
+						<h:column>
+							<f:facet name="header">
+								<h:outputText value="Total time" />
+							</f:facet>
+							<h:outputText
+								value="#{statisticsBackingBean.transformTime(singleStat.value.duration)}" />
+						</h:column>
+						<h:column>
+							<f:facet name="header">
+								<h:outputText value="Count events" />
+							</f:facet>
+							<h:outputText value="#{singleStat.value.count}" />
+						</h:column>
+					</h:dataTable>
+				</p:tab>
+				<p:tab id="trainersStats" title="TRAINERS">
+					<p:dataTable id="trainersStatsTable" var="stats"
+						styleClass="tableClass" lazy="true"
+						value="#{statisticsBackingBean.lazyDataModel}" rows="10"
+						pageLinks="5" paginator="true" paginatorPosition="bottom"
+						paginatorTemplate="{FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+						currentPageReportTemplate="{currentPage} #{message.of} #{totalPages}"
+						rowsPerPageTemplate="10,20,30"
+						emptyMessage="#{common.no_records_found}"
+						sortBy="#{stats.trainer.login}">
+
+
+						<p:column headerText="TRAINER" sortBy="#{stats.trainer.login}"
+							styleClass="tableHeader trainerHeader"
+							filterBy="#{stats.trainer.login}"
+							filterStyle="display: none !important"
+							filterStyleClass="hidenUserFilter">
+							<a href="../#user/id=#{stats.trainer.id}">#{stats.trainer.login}</a>
+						</p:column>
+						<p:column headerText="LOCATION"
+							styleClass="tableHeader locationHeader">
+							<h:outputText value="#{stats.trainer.city}" />
+						</p:column>
+						<p:column headerText="INVITE" styleClass="tableHeader">
+							<f:facet name="header">
+								<div class="ui-dt-c child-inline">
+									<div class="headInviteTitle">Training and seminars</div>
+									<div class="headInviteStartTime">Start time</div>
+									<div class="headDuration">Duration</div>
+									<div class="headAttendees" title="Attenees count">Att.</div>
+									<div class="headTrainers" title="Trainers total">Trns.</div>
+								</div>
+							</f:facet>
+							<h:dataTable var="invite" value="#{stats.invites}"
+								styleClass="innerTable" rendered="#{not empty stats.invites}"
+								columnClasses="inviteTitle,inviteStartTime,duration,attendees,trainers">
+								<h:column>
+									<a href="../#invite/#{invite.id}">
+										#{statisticsBackingBean.translateAccordingToLocale(invite.event.title)}
+									</a>
+								</h:column>
+								<h:column>
+									<h:outputText value="#{invite.dateFrom}">
+										<f:convertDateTime pattern="dd/MM/yyyy HH:mm" />
+									</h:outputText>
+								</h:column>
+								<h:column>
+									<h:outputText
+										value="#{statisticsBackingBean.calcInviteDuration(invite)}" />
+								</h:column>
+								<h:column>
+									<h:outputText
+										value="#{statisticsBackingBean.getAttendeesSize(invite)}" />
+								</h:column>
+								<h:column>
+									<h:outputText
+										value="#{statisticsBackingBean.getTrainersSize(invite)}" />
+								</h:column>
+							</h:dataTable>
+							<h:outputText value="No data provided"
+								rendered="#{empty stats.invites}" style="padding-left: 10px;" />
+						</p:column>
+
+						<p:ajax event="page"
+							onstart="enableAjaxProgress('.tableClass tbody')"
+							oncomplete="disableAjaxProgress('.tableClass tbody')" />
+						<p:ajax event="sort"
+							onstart="enableAjaxProgress('.tableClass tbody')"
+							oncomplete="disableAjaxProgress('.tableClass tbody')" />
+						<p:ajax event="filter"
+							onstart="enableAjaxProgress('.tableClass tbody')"
+							oncomplete="disableAjaxProgress('.tableClass tbody')" />
+
+
+					</p:dataTable>
+					<span class="tableFooter"> <h:outputText
+							value="Found #{statisticsBackingBean.lazyDataModel.rowCount} records" />
+					</span>
+				</p:tab>
+				<p:tab id="categoryStats" title="CATEGORY">
+					<p:treeTable id="categoriesTreeTable" styleClass="tableClass categoriesTable"
+						value="#{statisticsBackingBean.categoriesRoot}" var="category">
+						<f:facet name="header">Statistics by categories in 
+							#{locationBackingBean.selectedLocation == null ? 'All locations'
+								: locationBackingBean.selectedLocation.name}
+						</f:facet>
+						<p:column style="width:33%; height: 1%;" styleClass="tableHeader">
+							<f:facet name="header">Title</f:facet>
+							<h:outputText
+								value="#{statisticsBackingBean.translateAccordingToLocale(category.name)}" />
+						</p:column>
+
+						<p:column style="width:33%; height: 1%;" styleClass="tableHeader">
+							<f:facet name="header">Total in hours</f:facet>
+							<h:outputText value="#{statisticsBackingBean.transformTime(category.invitesDuration)}" />
+						</p:column>
+
+						<p:column style="width:33%; height: 1%;" styleClass="tableHeader">
+							<f:facet name="header">Total invites</f:facet>
+							<h:outputText value="#{category.invitesCount}" />
+						</p:column>
+					</p:treeTable>
+				</p:tab>
+			</p:tabView>
+		</div>
+	</ui:define>
+
+
+</ui:composition>
+
+

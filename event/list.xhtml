@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:c="http://java.sun.com/jstl/core"
+	xmlns:menu="http://java.sun.com/jsf/composite/components/menu"
+	template="/WEB-INF/templates/default.xhtml"
+	xmlns:p="http://primefaces.org/ui" xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions"
+	xmlns:progressbar="http://java.sun.com/jsf/composite/components/progressbar">
+
+	<ui:define name="content">
+		<h:outputScript name="js/backEnd/categoryTree.js" />
+		<h:outputScript name="js/backEnd/event/jquery.tipTip.minified.js" />
+		<h:outputScript name="js/backEnd/event/statusToolTip.js" />
+		<h:outputStylesheet name="css/backEnd/tipTip.css" />
+		<h:outputStylesheet name="css/backEnd/eventsCategoryTree.css" />
+		<h:outputStylesheet name="css/backEnd/element/progressbar.css" />
+		<div class="eventContainer">
+			#{categoryTree.setInviteCategory(null)}
+			<p:growl id="mes" showDetail="false" autoUpdate="true"
+				globalOnly="true" />
+			<!-- CATEGORY -->
+			<f:event type="preRenderView"
+				listener="#{categoryTree.setSelectedCategory(eventsListBackingBean.lazyModel.selectedCategory)}" />
+			<h:panelGroup id="categoryTree" layout="block">
+				<menu:eventCategoryTree counts="true"
+					management="#{user.role.manageCategory}"
+					categories="#{eventsListBackingBean.lazyModel.categoriesRoot}"
+					managedBean="#{eventsListBackingBean}"
+					nodeSelectUpdate=":eventsCount :eventList"
+					nodeSelectOnStart="enableAjaxProgress('.eventsListTable');"
+					nodeSelectOnComplete="disableAjaxProgress('.eventsListTable');"
+					treeUpdateFunction="treeUpdater.jq.click();">
+				</menu:eventCategoryTree>
+			</h:panelGroup>
+			<!-- END CATEGORY -->
+			<!-- FILTERS -->
+			<div class="eventHeader">
+				<div class="progressHeaderBackground eventListProgressContainer" />
+				<div class="categoriesCount">
+					<span class="uppercase">#{common.total_events}:</span> <span
+						class="eventHeaderGrey"> <h:outputText id="eventsCount"
+							value="#{eventsListBackingBean.lazyModel.eventsCount}" />
+					</span>
+				</div>
+
+
+
+
+
+				<div class="createButtonWrapper">
+					<div class="createEventButton">
+						<p:button value="#{common.events_list_create_event}" outcome="add" />
+					</div>
+				</div>
+
+
+
+				<h:form id="headerFilterForm">
+					<div id="typeFilter" class="typeFilter">
+						<p:selectOneMenu styleClass="statusesFilter eventsTypeW"
+							value="#{eventsListBackingBean.selectedEventType}">
+							<f:selectItem itemLabel="All Types" />
+							<f:selectItems value="#{eventsListBackingBean.allEventTypes}"
+								var="type" itemLabel="#{type}" />
+							<p:ajax event="change" update=":eventsCount :eventList"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');"></p:ajax>
+						</p:selectOneMenu>
+					</div>
+					<div id="keywordFilter" class="inlineBlocks"
+						onkeypress="disableReturnKeyPress();">
+						<h:inputText id="globalFilter" styleClass="keywordFilter"
+							value="#{eventsListBackingBean.searchKeyword}"
+							label="#{message.search}"
+							onkeyup="quickSearchKeyUp({input: this, searchFoo: onChangeSearch});">
+							<p:ajax event="change"
+								update=":eventsCount :eventList:eventsTable"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');" />
+						</h:inputText>
+						<p:watermark value="#{common.events_list_quick_search}"
+							for="globalFilter"></p:watermark>
+					</div>
+					<div id="statusesFilter" class="inlineBlocks">
+						<p:selectOneMenu styleClass="statusesFilter"
+							value="#{eventsListBackingBean.selectedEventStatusEnum}">
+							<f:selectItem itemLabel="All statuses" />
+							<f:selectItems value="#{statuses}" var="status"
+								itemLabel="#{status.stringName}" />
+							<p:ajax event="change" update=":eventsCount :eventList"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');"></p:ajax>
+						</p:selectOneMenu>
+					</div>
+
+					<p:commandButton id="treeUpdater" style="display:none;"
+						widgetVar="treeUpdater" value="" update=":categoryTree" />
+
+					<div id="dateFilter" class="inlineBlocks">
+						<p:calendar id="fromDate"
+							value="#{eventsListBackingBean.createDateFrom}"
+							pattern="dd.MM.yyyy" styleClass="fromDateFilter">
+							<p:ajax event="dateSelect"
+								update=":eventsCount :eventList:eventsTable"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');" />
+							<p:ajax event="change"
+								update=":eventsCount :eventList:eventsTable"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');" />
+						</p:calendar>
+						<p:watermark value="#{common.events_list_from_date}"
+							for="fromDate"></p:watermark>
+						<p:calendar id="toDate"
+							value="#{eventsListBackingBean.createDateTo}"
+							pattern="dd.MM.yyyy" styleClass="toDateFilter">
+							<p:ajax event="dateSelect" update=":eventsCount :eventList"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');" />
+							<p:ajax event="change" update=":eventsCount :eventList"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');" />
+						</p:calendar>
+						<p:watermark value="#{common.events_list_to_date}" for="toDate"></p:watermark>
+					</div>
+				</h:form>
+
+
+
+
+
+
+			</div>
+			<div class="filter">
+				<div class="changeCategoryButton">
+					<p:commandButton id="editCategory"
+						value="#{common.events_list_change_category_button}" type="button"
+						ajax="true" onclick="editDialog.show();"
+						disabled="#{!moveEventBackingBean.isEventsReadyToMove()}" />
+				</div>
+				<h:form id="filterForm">
+					<div class="itemsPerPage inlineBlocks">
+						<span class="itemsPerPageText">Items per page</span>
+						<p:selectOneMenu styleClass="selectItemsPerPage"
+							widgetVar="selectVarTopFirstTab"
+							value="#{eventsListBackingBean.lazyModel.pageSize}">
+							<f:selectItem itemLabel="10" itemValue="10" />
+							<f:selectItem itemLabel="20" itemValue="20" />
+							<f:selectItem itemLabel="30" itemValue="30" />
+							<p:ajax event="change"
+								onstart="enableAjaxProgress('.eventsListTable'); itemPerPageSelect('eventsListTable', true, true);"
+								oncomplete="disableAjaxProgress('.eventsListTable');"></p:ajax>
+						</p:selectOneMenu>
+					</div>
+
+
+
+
+
+
+
+
+
+
+
+					<ui:remove>
+						<div class="filterButton">
+							<p:commandButton id="filterSubmit" styleClass="searchButton"
+								value="" update=":eventsCount :eventList"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="disableAjaxProgress('.eventsListTable');" />
+
+							<p:commandButton style="display: none;"
+								styleClass="searchButtonHidden"
+								value="#{common.events_list_filter}" />
+						</div>
+					</ui:remove>
+				</h:form>
+			</div>
+			<!-- END FILTERS -->
+			<!-- EVENTS LIST -->
+			<div class="evensList">
+				<h:form id="eventList">
+					<p:dataTable id="eventsTable"
+						value="#{eventsListBackingBean.lazyModel}"
+						styleClass="eventsListTable" paginatorPosition="both" var="event"
+						widgetVar="eventTable" lazy="true"
+						rows="#{eventsListBackingBean.lazyModel.pageSize}"
+						paginator="true" pageLinks="5"
+						paginatorTemplate="{FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+						rowsPerPageTemplate="10,20,30"
+						emptyMessage="#{common.no_records_found}"
+						currentPageReportTemplate="{currentPage} #{message.of} {totalPages}"
+						selection="#{moveEventBackingBean.selectedEvents}"
+						sortBy="#{event.title}">
+
+						<p:column selectionMode="multiple" styleClass="checkBoxesCollum" />
+						<p:column sortBy="#{event.title}" styleClass="titleCollum">
+							<f:facet name="header">#{common.events_list_event_title}</f:facet>
+							<h:link
+								value="#{contentTranslationController.translate(event.title)}"
+								outcome="event-view">
+								<f:param name="id" value="#{event.id}" />
+							</h:link>
+							<br />
+							<span class="eventLocation">Locations: <ui:repeat
+									value="#{event.locations.toArray()}" var="location">
+									<h:outputText value="#{location.name}; " />
+								</ui:repeat></span>
+							<br />
+							<span class="createdDate">Created:
+								#{eventsListBackingBean.lazyModel.dateToString(event.createDate)}</span>
+							<span class="createdDate">Updated:
+								#{eventsListBackingBean.lazyModel.dateToString(event.modifiedDate)}</span>
+							<span class="createdDate">#{common.event_author}:
+								#{eventsListBackingBean.fetchAuthor(event.author)}</span>
+							<br />
+							<span class="createdDate">Type:
+								#{event.eventType.type_name}</span>
+
+						</p:column>
+
+						<p:column sortBy="#{event.category}" styleClass="categoryCollum">
+							<f:facet name="header">#{common.events_list_event_category}</f:facet>
+							<h:outputText
+								value="#{contentTranslationController.translate(event.category.name)}" />
+						</p:column>
+
+						<p:column styleClass="trainersCollum">
+							<f:facet name="header">#{common.events_list_trainers}</f:facet>
+							<ui:repeat var="trainer" value="#{event.trainers}"
+								varStatus="loop">
+								<h:outputText value="#{trainer}" />
+								<h:outputText value="#{!loop.last ? ', ' : ''}" />
+							</ui:repeat>
+						</p:column>
+						<p:column sortBy="#{event.status}" styleClass="statusCollum">
+							<f:facet name="header">#{common.events_list_event_status}</f:facet>
+							<p:graphicImage styleClass="statusImage"
+								title="#{eventsListBackingBean.getStatusStringNameById(event.status)}"
+								value="#{staticPath}/resources/img/status#{event.status}.png"></p:graphicImage>
+						</p:column>
+						<p:column styleClass="attendeesCollum">
+							<f:facet name="header">#{common.events_list_subscribers}</f:facet>
+
+							<progressbar:event_progressbar var="#{event}" />
+						</p:column>
+						<p:ajax event="sort"
+							onstart="enableAjaxProgress('.eventsListTable');"
+							oncomplete="disableAjaxProgress('.eventsListTable');" />
+						<p:ajax event="toggleSelect" update=":editCategory" />
+						<p:ajax event="rowSelectCheckbox" update=":editCategory" />
+						<p:ajax event="rowUnselectCheckbox" update=":editCategory" />
+						<p:ajax event="page"
+							onstart="enableAjaxProgress('.eventsListTable');"
+							oncomplete="disableAjaxProgress('.eventsListTable');" />
+					</p:dataTable>
+
+					<div class="bottomWrapper">
+						<div class="allStatuses">
+							<div class="statusesLegend">
+								<img src="#{staticPath}/resources/img/ic_legend_draft.png" /> <span>
+									- Draft</span>
+							</div>
+							<div class="statusesLegend">
+								<img src="#{staticPath}/resources/img/ic_legend_pending.png" />
+								<span> - Pending</span>
+							</div>
+							<div class="statusesLegend">
+								<img src="#{staticPath}/resources/img/ic_legend_approved.png" />
+								<span> - Published</span>
+							</div>
+							<h:panelGroup
+								rendered="#{!eventsListBackingBean.renderArchiveIcon()}">
+								<div class="statusesLegend">
+									<img src="#{staticPath}/resources/img/ic_legend_cancelled.png" />
+									<span> - Rejected</span>
+								</div>
+							</h:panelGroup>
+							<h:panelGroup
+								rendered="#{eventsListBackingBean.renderArchiveIcon()}">
+								<div class="statusesLegend">
+									<img src="#{staticPath}/resources/img/ic_legend_archived.png" />
+									<span> - Archived</span>
+								</div>
+							</h:panelGroup>
+						</div>
+						<div class="itemsPerPageBottom">
+							<span class="itemsPerPageText">Items per page</span>
+							<p:selectOneMenu styleClass="selectItemsPerPageBottom"
+								widgetVar="selectVarBottomFirstTab"
+								value="#{eventsListBackingBean.lazyModel.pageSize}">
+								<f:selectItem itemLabel="10" itemValue="10" />
+								<f:selectItem itemLabel="20" itemValue="20" />
+								<f:selectItem itemLabel="30" itemValue="30" />
+								<p:ajax event="change"
+									onstart="enableAjaxProgress('.eventsListTable'); itemPerPageSelect('eventsListTable', true, false);"
+									oncomplete="disableAjaxProgress('.eventsListTable');"></p:ajax>
+							</p:selectOneMenu>
+						</div>
+					</div>
+					<p:dialog id="edit_dlg" widgetVar="editDialog" modal="true"
+						styleClass="moveEventDialog"
+						header="#{common_event.choose_new_category}" resizable="false"
+						dynamic="true">
+						<h:form id="treeform"
+							ondblclick="document.getElementById('eventList'+':'+'moveEventsButton').removeAttribute('disabled');document.getElementById('eventList'+':'+'moveEventsButton').click();">
+							<menu:eventCategoryTree styleClass="specialTree"
+								categories="#{moveEventBackingBean.categoriesRoot}"
+								managedBean="#{moveEventBackingBean}"
+								nodeSelectUpdate=":eventList:moveEventsButton" />
+						</h:form>
+						<div class="eventsListMoveButtonWrapper">
+							<p:commandButton id="moveEventsButton"
+								value="#{common.events_list_change_button}"
+								disabled="#{!moveEventBackingBean.isCategorySelected()}"
+								action="#{moveEventBackingBean.moveEventsToAnotherCategory()}"
+								ajax="true" onclick="editDialog.hide();"
+								onstart="enableAjaxProgress('.eventsListTable');"
+								oncomplete="treeUpdater.jq.click(); disableAjaxProgress('.eventsListTable');"
+								update=":eventsCount :eventList :editCategory" />
+						</div>
+					</p:dialog>
+				</h:form>
+			</div>
+			<div class="clearFloat"></div>
+		</div>
+	</ui:define>
+</ui:composition>

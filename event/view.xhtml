@@ -1,0 +1,826 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:c="http://java.sun.com/jstl/core"
+	xmlns:pe="http://primefaces.org/ui/extensions"
+	xmlns:p="http://primefaces.org/ui" xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions"
+	xmlns:menu="http://java.sun.com/jsf/composite/components/menu"
+	xmlns:preview="http://java.sun.com/jsf/composite/components/preview"
+	template="/WEB-INF/templates/default.xhtml">
+
+	<ui:define name="content">
+
+		<h:outputStylesheet name="css/backEnd/eventsCategoryTree.css" />
+		<h:outputStylesheet name="css/backEnd/eventDetails.css" />
+		<h:outputStylesheet name="css/backEnd/mindCheck.css" />
+		<h:outputStylesheet name="css/backEnd/eventComments.css" />
+		<h:outputStylesheet name="css/backEnd/tipTip.css" />
+
+		<h:outputScript name="js/backEnd/event/jquery.tipTip.minified.js" />
+		<h:outputScript name="js/backEnd/event/eventViewUtils.js" />
+		<h:outputScript name="js/backEnd/event/showAttendee.js" />
+		<h:outputScript name="js/backEnd/event/statusToolTip.js" />
+
+		<script type="text/javascript"
+			src="https://#{request.localAddr}/MindCheck/resources/js/mindcheck.inject.js"></script>
+		<h:outputScript name="js/backEnd/event/mindCheck.js" />
+		<div class="contentWrapper">
+			#{categoryTree.setInviteCategory(eventViewBackingBean.parentCategories)}
+			<div class="categoryTree">
+				<h:panelGroup id="categoryTree" layout="block">
+					<menu:eventCategoryTree counts="true"
+						categories="#{eventsListBackingBean.lazyModel.categoriesRoot}"
+						managedBean="#{eventsListBackingBean}"
+						nodeSelectOnComplete="location.href = 'list.htm'" />
+				</h:panelGroup>
+			</div>
+			<div class="eventDetailsWrapper">
+				<div class="categoriesNamesWrapper">
+					<h:panelGroup id="editCategory">
+						<div class="categoriesNames">
+							<div class="fullCategoryName">
+								<ui:repeat var="category"
+									value="#{eventViewBackingBean.parentCategories}">
+									<h:outputText id="category"
+										value="#{contentTranslationController.translate(category.name)}#{eventViewBackingBean.parentCategories.indexOf(category) == eventViewBackingBean.parentCategories.size() - 1 ? '' : ' > '}" />
+								</ui:repeat>
+							</div>
+						</div>
+					</h:panelGroup>
+					<div class="editEventInviteButton">
+						<p:button id="headline" value="#{common.invites_view_edit}"
+							outcome="event-form"
+							rendered="#{!eventViewBackingBean.archivedEvent}">
+							<f:param name="id" value="#{eventViewBackingBean.event.id}" />
+						</p:button>
+					</div>
+					<div class="deleteEventInviteButton">
+						<p:commandButton id="deleteEventButton"
+							value="#{common.event_delete}"
+							rendered="#{eventViewBackingBean.showDeleteButton}"
+							action="#{eventViewBackingBean.deleteEvent()}"
+							onclick="if (!confirm('#{common.confirm_event_deleting}')) return false" />
+					</div>
+					<div class="clearFloat"></div>
+				</div>
+				<div class="eventDetails">
+					<div class="titleAndBrief">
+						<div class="eventTitleWrapper">
+							<h:panelGroup
+								styleClass="eventTitle uppercaseTitle addLeftFloat #{eventViewBackingBean.archivedEvent? '': 'pensil' }"
+								layout="block">#{common.event_details_title}</h:panelGroup>
+							<div class="titleValue clearLeft">
+								<p:inplace id="title" editor="true" toggleable="true"
+									disabled="#{eventViewBackingBean.archivedEvent}"
+									styleClass="editableField" widgetVar="titleInplace">
+									<p:ajax event="save" update=":historyTabs"
+										listener="#{eventViewBackingBean.updateEvent}" />
+									<h:inputText value="#{eventViewBackingBean.eventTitle}"
+										styleClass="titleEditor inlineEditor">
+										<f:validateLength minimum="3" maximum="100" />
+									</h:inputText>
+								</p:inplace>
+							</div>
+						</div>
+						<h:form id="currentEventStatus">							
+							<div class="eventStatusButtonsWrapper">
+								<div class="eventStatusButtons">
+									<h:outputText value="#{common.moveToStatus}"
+										rendered="#{eventViewBackingBean.currentEventStatus.value != 3}" />
+									<h:outputText value="#{common.eventStatusArchivedCantChange}"
+										rendered="#{eventViewBackingBean.currentEventStatus.value == 3}" />
+								</div>
+								<div class="stButtons">
+									<h:commandLink action="#{eventViewBackingBean.moveToDraft()}"
+										rendered="#{eventViewBackingBean.showMoveToDraft() || eventViewBackingBean.currentEventStatus.value == 1}"
+										disabled="#{!eventViewBackingBean.showMoveToDraft()}">
+										<h:graphicImage title="Draft"
+											value="#{staticPath}/resources/img/ic_legend_draft.png"
+											styleClass="#{eventViewBackingBean.showMoveToDraft() ? 'shadedStatusIcons' : '' }" />
+										<p:ajax update=":currentEventStatus" />
+									</h:commandLink>
+									<h:commandLink action="#{eventViewBackingBean.moveToPending()}"
+										rendered="#{eventViewBackingBean.showMoveToPending() || eventViewBackingBean.currentEventStatus.value == 2}"
+										disabled="#{!eventViewBackingBean.showMoveToPending()}">
+										<h:graphicImage title="Pending"
+											value="#{staticPath}/resources/img/ic_legend_pending.png"
+											styleClass="#{eventViewBackingBean.showMoveToPending() ? 'shadedStatusIcons' : '' }" />
+										<p:ajax update=":currentEventStatus" />
+									</h:commandLink>
+									<h:commandLink action="#{eventViewBackingBean.moveToArchive()}"
+										rendered="#{eventViewBackingBean.showMoveToArchive() || eventViewBackingBean.currentEventStatus.value == 3}"
+										disabled="#{!eventViewBackingBean.showMoveToArchive()}">
+										<h:graphicImage title="Archived"
+											value="#{staticPath}/resources/img/ic_legend_archived.png"
+											styleClass="#{eventViewBackingBean.showMoveToArchive() ? 'shadedStatusIcons' : '' }" />
+										<p:ajax update=":currentEventStatus" />
+									</h:commandLink>
+									<h:commandLink
+										action="#{eventViewBackingBean.moveToPublished()}"
+										rendered="#{eventViewBackingBean.showMoveToPublished() || eventViewBackingBean.currentEventStatus.value == 4}"
+										disabled="#{!eventViewBackingBean.showMoveToPublished()}">
+										<h:graphicImage title="Published"
+											value="#{staticPath}/resources/img/ic_legend_approved.png"
+											styleClass="#{eventViewBackingBean.showMoveToPublished() ? 'shadedStatusIcons' : '' }" />
+										<p:ajax update=":currentEventStatus" />
+									</h:commandLink>
+									<h:commandLink action="#{eventViewBackingBean.moveToRejected()}"
+										rendered="#{eventViewBackingBean.showMoveToRejected() || eventViewBackingBean.currentEventStatus.value == 5}"
+										disabled="#{!eventViewBackingBean.showMoveToRejected()}">
+										<h:graphicImage title="Rejected"
+											value="#{staticPath}/resources/img/ic_legend_cancelled.png"
+											styleClass="#{eventViewBackingBean.showMoveToRejected() ? 'shadedStatusIcons' : '' }" />
+										<p:ajax update=":currentEventStatus" />
+									</h:commandLink>
+								</div>
+								<h:outputText styleClass="" value="#{common.event_type} #{eventViewBackingBean.event.eventType.type_name}" />
+							</div>
+						</h:form>
+						<div class="eventBriefWrapper">
+							<h:panelGroup
+								styleClass="eventBrief uppercaseTitle addLeftFloat #{eventViewBackingBean.archivedEvent? '': 'pensil' }"
+								layout="block">#{common.event_details_brief}</h:panelGroup>
+							<div class="briefValue clearBoth">
+								<p:inplace editor="true" toggleable="true"
+									styleClass="editableField" widgetVar="briefInplace"
+									disabled="#{eventViewBackingBean.archivedEvent}">
+									<p:ajax event="save" update=":historyTabs"
+										listener="#{eventViewBackingBean.updateEvent}" />
+									<p:inputTextarea id="briefTextArea"
+										value="#{eventViewBackingBean.eventBrief}"
+										styleClass="briefEditor inlineEditor">
+										<f:validateLength minimum="25" maximum="150" />
+									</p:inputTextarea>
+								</p:inplace>
+							</div>
+						</div>
+					</div>
+					<div class="eventLogo">							
+						<p:graphicImage
+							rendered="#{eventViewBackingBean.event.hasLogo}"
+							value="#{eventLogoPath}#{eventViewBackingBean.event.id}"/>
+						<p:graphicImage
+							rendered="#{!eventViewBackingBean.event.hasLogo}"
+							value="../../resources/img/events/big-event/event-logo.png"/>
+					</div>
+					<div class="eventDescriptionWrapper">
+						<h:panelGroup
+							styleClass="eventDescription uppercaseTitle addLeftFloat #{eventViewBackingBean.archivedEvent? '': 'pensil' }"
+							layout="block">#{common.event_details_description}</h:panelGroup>
+						<div class="descriptionValue clearBoth">
+							<p:inplace id="inlineEventDescrEditor" editor="true"
+								toggleable="true" widgetVar="descriptionInplace"
+								disabled="#{eventViewBackingBean.archivedEvent}">
+								<p:ajax event="save"
+									listener="#{eventViewBackingBean.updateEvent}"
+									oncomplete="unescapeHtml();" update=":historyTabs" />
+								<p:ajax event="cancel" oncomplete="unescapeHtml();" />
+								<pe:ckEditor id="editor" styleClass="descriptionEditor"
+									width="660" height="300"
+									interfaceColor="#AFDBF3" language="en"
+									toolbar="[['Cut','Copy','Paste','PasteText','PasteFromWord','-','RemoveFormat','-','Bold','Italic','Underline','Strike','Subscript','Superscript','-','TextColor','BGColor','Blockquote','-','JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock','-','NumberedList','BulletedList','-','Outdent','Indent','-','SpellChecker'],['Format','Font','FontSize','Styles',]]"
+									value="#{eventViewBackingBean.eventDescription}">
+								</pe:ckEditor>
+							</p:inplace>
+						
+						</div>
+					</div>
+					<div class="eventAttachmentsWrapper">
+						<div class="attachmentTitleWrapper">
+							<div class="attachmentHeader uppercaseTitle">#{message.attachments}
+								(#{eventViewBackingBean.attachments.size()})</div>
+							<div class="downloadAll">
+								<h:form>
+									<h:commandLink immediate="true"
+										rendered="#{eventViewBackingBean.attachments.size()>0}"
+										actionListener="#{eventViewBackingBean.writeAllEventAttachmentsInZip}"
+										value="#{common.event_details_download_all}" />
+								</h:form>
+							</div>
+							<div class="clearFloat"></div>
+						</div>
+						<h:form>
+							<ui:repeat value="#{eventViewBackingBean.attachments}"
+								var="attachment">
+								<h:outputLink
+									value="#{eventViewBackingBean.attachmentStaticPath(attachment)}">
+									<h:outputText value="#{attachment.title}.#{attachment.type}" />
+								</h:outputLink>
+								<h:outputText
+									value="#{eventViewBackingBean.attachments.indexOf(attachment) == eventViewBackingBean.attachments.size() - 1 ? '' : ', '}" />
+							</ui:repeat>
+						</h:form>
+					</div>
+					<div class="eventLocationWrapper">
+						<div class="uppercaseTitle">#{message.locations}</div>
+						<div class="locationValue clearLeft">
+							<ui:repeat
+								value="#{eventViewBackingBean.event.locations.toArray()}"
+								var="location">
+								<h:outputText value="#{location.name}; " />
+							</ui:repeat>
+							<h:outputText value="No locations found"
+								rendered="#{eventViewBackingBean.event.locations.size() == 0}" />
+						</div>
+					</div>
+					<div class="eventLocationWrapper">
+						<div class="uppercaseTitle">#{message.addresses}</div>
+						<div class="locationValue clearLeft">
+							<ui:repeat
+								value="#{eventViewBackingBean.event.addresses.toArray()}"
+								var="address">
+								<h:outputText
+									value="#{eventEditBackingBean.getLocationByAddressId(address.id).name} - #{address.address}; " />
+							</ui:repeat>
+							<h:outputText value="No addresses found"
+								rendered="#{eventViewBackingBean.event.addresses.size() == 0}" />
+						</div>
+					</div>
+					<h:form>
+						<div class="topEventWrapper">
+						<h:panelGroup
+								styleClass="eventLevel uppercaseTitle addLeftFloat #{eventViewBackingBean.archivedEvent? '': 'pensil' }"
+								layout="block" id="topEventPensil">#{common.topEvent}</h:panelGroup>
+							<p:selectBooleanCheckbox value="#{eventViewBackingBean.event.topEvent}" styleClass="topEvent"
+							disabled="#{eventViewBackingBean.archivedEvent}" id="topEvent">
+								<p:ajax event="change"
+								listener="#{eventViewBackingBean.updateTopEventStatus()}"/>
+							</p:selectBooleanCheckbox>
+						</div>
+					</h:form>
+					<div style="clear:both"/>
+					<div class="eventInfoWrapper">
+						<div class="eventTrainersWrapper">
+							<div class="eventTrainers uppercaseTitle">#{common.invites_view_trainers}</div>
+							<ui:repeat var="trainer"
+								value="#{eventViewBackingBean.event.trainers}" varStatus="loop">
+								<h:outputText value="#{trainer.firstName} #{trainer.lastName}" />
+								<h:outputText value="#{loop.last ? '' : ', '}" />
+							</ui:repeat>
+						</div>
+						<div class="eventAssistantWrapper">
+							<div class="eventAssistant uppercaseTitle">#{common.invites_view_assistant}</div>
+							<h:outputText
+								value="#{eventViewBackingBean.event.assistant.firstName} #{eventViewBackingBean.event.assistant.lastName}" />
+						</div>
+						<div class="eventDurationWrapper">
+							<h:panelGroup
+								styleClass="eventDuration uppercaseTitle addLeftFloat #{eventViewBackingBean.archivedEvent? '': 'pensil' }"
+								layout="block">#{common.invites_view_duration}</h:panelGroup>
+							<div class="durationValue clearBoth">
+								<p:inplace editor="true" toggleable="true"
+									styleClass="editableField duration" widgetVar="durationInplace"
+									label="#{eventViewBackingBean.formatDuration()}"
+									disabled="#{eventViewBackingBean.archivedEvent}">
+									<p:ajax event="save"
+										listener="#{eventViewBackingBean.updateEventDuration}" />
+									<h:inputText value="#{eventViewBackingBean.event.duration}"
+										styleClass="durationEditor inlineEditor">
+										<f:validateLongRange minimum="1" />
+									</h:inputText>
+									<span>min</span>
+								</p:inplace>
+							</div>
+						</div>
+						<div class="eventAttendeesCountWrapper">
+							<h:panelGroup
+								styleClass="eventAttendeesCount uppercaseTitle addLeftFloat #{eventViewBackingBean.archivedEvent? '': 'pensil' }"
+								layout="block">#{common.invites_view_attendees}</h:panelGroup>
+							<div class="attendeesCountValue clearBoth">
+								<p:inplace editor="true" toggleable="true"
+									label="#{eventViewBackingBean.event.minAttendee} "
+									styleClass="editableField minAttendeeInplace"
+									widgetVar="minAttendeesInplace"
+									disabled="#{eventViewBackingBean.archivedEvent}">
+									<p:ajax event="save"
+										listener="#{eventViewBackingBean.updateEventMinAttendees}" />
+									<h:inputText value="#{eventViewBackingBean.event.minAttendee}"
+										styleClass="minAttendeeEditor inlineEditor">
+										<f:validateLongRange minimum="1" />
+										<!-- <f:validateLength maximum="4" /> -->
+									</h:inputText>
+								</p:inplace>
+								<span class="dash"> - </span>
+								<p:inplace editor="true" toggleable="true"
+									label="#{eventViewBackingBean.event.maxAttendee}"
+									styleClass="editableField maxAttendeeInplace"
+									widgetVar="maxAttendeesInplace"
+									disabled="#{eventViewBackingBean.archivedEvent}">
+									<p:ajax event="save"
+										listener="#{eventViewBackingBean.updateEventMaxAttendees}" />
+									<h:inputText value="#{eventViewBackingBean.event.maxAttendee}"
+										styleClass="maxAttendeeEditor inlineEditor">
+										<f:validateLongRange minimum="1" />
+										<!-- <f:validateLength maximum="4" /> -->
+									</h:inputText>
+								</p:inplace>
+								<p:growl id="growlMessage" autoUpdate="true" />
+							</div>
+						</div>
+						<div class="eventLevelWrapper">
+							<h:panelGroup
+								styleClass="eventLevel uppercaseTitle addLeftFloat #{eventViewBackingBean.archivedEvent? '': 'pensil' }"
+								layout="block">#{common.invites_view_level}</h:panelGroup>
+							<div class="levelValue clearLeft">
+								<p:inplace id="minInplace" editor="true" toggleable="true"
+									emptyLabel="&#160;&#160;&#160;&#160;&#160;&#160;"
+									styleClass="minLevel" widgetVar="minLevelInplace"
+									disabled="#{eventViewBackingBean.archivedEvent}">
+									<h:inputText id="minLevelOutput"
+										styleClass="minLevelInput inlineEditor"
+										value="#{levelsController.minLevel}" />
+									<h:form styleClass="minLevelForm">
+										<p:accordionPanel multiple="false" activeIndex="-1"
+											value="#{levelsController.levelsGroups}" var="groupName">
+											<p:tab title="#{groupName}-Levels">
+												<p:dataTable styleClass="#{groupName}"
+													value="#{levelsController.levelsGroupMap.get(groupName)}"
+													var="level" rowKey="#{level.id}"
+													selection="#{levelsController.selectedLevels}">
+													<p:column selectionMode="multiple" />
+													<p:column>
+														#{level.rank} - #{level.title}
+													</p:column>
+													<p:ajax event="rowSelectCheckbox"
+														listener="#{levelsController.rowSelectMin}"
+														update=":minLevelOutput" />
+													<p:ajax event="rowUnselectCheckbox"
+														listener="#{levelsController.rowUnSelectMin}"
+														update=":minLevelOutput" />
+												</p:dataTable>
+											</p:tab>
+										</p:accordionPanel>
+									</h:form>
+									<p:ajax event="save"
+										listener="#{levelsController.updateEventMinLevels}"
+										update=":minLevelOutput" />
+									<p:ajax event="cancel" listener="#{levelsController.cancel}"
+										update=":minLevelOutput" />
+								</p:inplace>
+								<span>- </span>
+								<p:inplace id="maxInplace" editor="true" toggleable="true"
+									emptyLabel="&#160;&#160;&#160;&#160;&#160;&#160;"
+									styleClass="maxLevel" widgetVar="maxLevelInplace"
+									disabled="#{eventViewBackingBean.archivedEvent}">
+									<h:inputText id="maxLevelOutput"
+										styleClass="maxLevelInput inlineEditor"
+										value="#{levelsController.maxLevel}" />
+									<h:form styleClass="maxLevelForm">
+										<p:accordionPanel multiple="false" activeIndex="-1"
+											value="#{levelsController.levelsGroups}" var="groupName">
+											<p:tab title="#{groupName}-Levels">
+												<p:dataTable styleClass="#{groupName}"
+													value="#{levelsController.levelsGroupMap.get(groupName)}"
+													var="level" rowKey="#{level.id}"
+													selection="#{levelsController.selectedLevelsMax}">
+													<p:column selectionMode="multiple" />
+													<p:column>
+														#{level.rank} - #{level.title}
+													</p:column>
+													<p:ajax event="rowSelectCheckbox"
+														listener="#{levelsController.rowSelectMax}"
+														update=":maxLevelOutput" />
+													<p:ajax event="rowUnselectCheckbox"
+														listener="#{levelsController.rowUnSelectMax}"
+														update=":maxLevelOutput" />
+												</p:dataTable>
+											</p:tab>
+										</p:accordionPanel>
+									</h:form>
+									<p:ajax event="save"
+										listener="#{levelsController.updateEventMaxLevels}"
+										update=":maxLevelOutput" />
+									<p:ajax event="cancel" listener="#{levelsController.cancel}"
+										update=":maxLevelOutput" />
+								</p:inplace>
+							</div>
+						</div>
+						<div class="clearFloat"></div>
+					</div>
+					<div class="eventAttendeesWrapper">
+						<div class="eventAttendees uppercaseTitle">#{common.invites_view_subscribers}
+							(#{eventViewBackingBean.event.attendees.size()})</div>
+						<ui:repeat var="attendee"
+							value="#{eventViewBackingBean.event.attendees}" varStatus="loop">
+							<h:outputText value="#{attendee.firstName} #{attendee.lastName}" />
+							<h:outputText value="#{loop.last ? '' : ', '}" />
+						</ui:repeat>
+					</div>
+					<div class="showQuizzesWraper">
+						<h:commandButton value="#{common.show_quizzes}"
+							styleClass="showQuizzes"
+							onclick="setEventIdAndAplicationType(#{eventViewBackingBean.event.id},0)" />
+					</div>
+				</div>
+				<div class="createInviteButtonWrapper">
+					<p:button value="#{common.invites_view_create_invite}"
+						outcome="manual-invite-creation"
+						disabled="#{!eventViewBackingBean.isEventReady()}">
+						<f:param name="eventId" value="#{eventViewBackingBean.event.id}" />
+					</p:button>
+				</div>
+				<div class="invitesWrapper clearBoth">
+					<p:tabView id="inventsCreatedClosedId">
+						<h:outputStylesheet name="css/backEnd/createdClosedInvites.css" />
+						<h:outputScript name="js/showAttendee.js" />
+						<p:tab id="createdTabinvitesId"
+							title="#{common.event_view_invites_created} (#{eventViewBackingBean.invitesContainer.created.size()})">
+							<h:form id="invitesFormId">
+								<p:dataTable id="createdInvitesTable"
+									styleClass="createdInvitesList"
+									value="#{eventViewBackingBean.invitesContainer.created}"
+									var="invite"
+									sortBy="#{eventViewBackingBean.formatDateFrom(invite.dateFrom)}">
+									<p:column id="dateTimeCreatedId"
+										styleClass="createdInvitesDateTime"
+										sortBy="#{eventViewBackingBean.formatDateFrom(invite.dateFrom)}">
+										<f:facet name="header">#{common.event_view_invites_dateTime}</f:facet>
+										<h:outputText
+											value="#{eventViewBackingBean.formatDateFrom(invite.dateFrom)}" />
+									</p:column>
+									
+									
+									
+									<p:column id="locationCreatedId" styleClass="createdInvitesRoom">
+										<f:facet name="header">#{common.invite_location}</f:facet>
+										<h:outputText value="#{invite.room.location.name}" />
+									</p:column>
+									
+									
+									<p:column id="roomCreatedId" styleClass="createdInvitesRoom">
+										<f:facet name="header">#{common.event_view_invites_room}</f:facet>
+										<h:outputText value="#{invite.room.name}" />
+									</p:column>
+									<p:column id="trainerCreatedId"
+										sortBy="#{not empty eventViewBackingBean.getTrainers(invite) ? eventViewBackingBean.getTrainers(invite).get(0).firstName : ''}"
+										styleClass="createdInvitesTrainer">
+										<f:facet name="header">#{common.event_view_invites_trainer}</f:facet>
+										<ui:repeat var="trainer" varStatus="loop"
+											value="#{eventViewBackingBean.getTrainers(invite)}">
+											<h:outputText
+												value="#{trainer.firstName} #{trainer.lastName} #{!loop.last ? ', ' : ''}" />
+										</ui:repeat>
+									</p:column>
+									<p:column id="assistantCreatedId"
+										sortBy="#{eventViewBackingBean.event.assistant.firstName}"
+										styleClass="createdInvitesAssistant">
+										<f:facet name="header">#{common.event_view_invites_assistant}</f:facet>
+										<h:outputText
+											value="#{eventViewBackingBean.event.assistant.firstName} #{eventViewBackingBean.event.assistant.lastName}" />
+									</p:column>
+									<p:column id="statusCreatedId"
+										styleClass="createdInvitesStatus">
+										<f:facet name="header">#{common.event_view_invites_status}</f:facet>
+										<h:graphicImage styleClass="pendingAttendeeImg"
+											value="#{staticPath}/resources/img/ic_legend_pending.png" />
+										<h:outputText
+											value="#{eventViewBackingBean.getPendingAttendees(invite).size()}" />
+										<h:graphicImage styleClass="approvedAttendeeImg"
+											value="#{staticPath}/resources/img/ic_legend_approved.png" />
+										<h:outputText
+											value="#{eventViewBackingBean.getApprovedAttendees(invite).size()}" />
+										<div class="attendeesCreatedInvites" style="display: none;">
+											<div class="pendingAttendees">
+												<ui:repeat var="attendees" varStatus="loop"
+													value="#{eventViewBackingBean.getPendingAttendees(invite)}">
+													<h:outputText
+														value="#{attendees.firstName} #{attendees.lastName}#{!loop.last ? '.' : ''}" />
+												</ui:repeat>
+											</div>
+
+											<div class="approvedAttendees">
+												<ui:repeat var="attendees" varStatus="loop"
+													value="#{eventViewBackingBean.getApprovedAttendees(invite)}">
+													<h:outputText
+														value="#{attendees.firstName} #{attendees.lastName}#{!loop.last ? '.' : ''}" />
+												</ui:repeat>
+											</div>
+										</div>
+									</p:column>
+									<p:column id="editCreatedId" styleClass="createdInvitesEdit">
+										<f:facet name="header"></f:facet>
+										<h:link value="" outcome="manual-invite-creation"
+											style="text-decoration: underline">
+											<f:param name="inviteId" value="#{invite.id}" />
+											<h:graphicImage id="editImg"
+												value="#{staticPath}/resources/img/ic_edit.png" />
+										</h:link>
+									</p:column>
+									<p:column id="cancelCreatedId"
+										styleClass="createdInvitesCancel">
+										<f:facet name="header"></f:facet>
+										<h:commandButton id="cancelButtonId" value=""
+											styleClass="cancelButton2"
+											actionListener="#{eventViewBackingBean.cancelInvite(invite)}">
+											<f:ajax onevent="startCancel" />
+										</h:commandButton>
+										<h:graphicImage id="startCancelId" styleClass="startCancelImg"
+											value="#{staticPath}/resources/img/siteSearchIconLoad.gif"
+											style="display:none" />
+										<h:graphicImage id="canceledId" styleClass="canceled"
+											value="#{staticPath}/resources/img/canceled_invite.png"
+											style="display:none" />
+									</p:column>
+								</p:dataTable>
+								<div id="imageDescription">
+									<h:graphicImage styleClass="approvedImgDesc"
+										value="#{staticPath}/resources/img/ic_legend_approved.png" />
+									<h:outputText value=" - #{common.event_view_invites_approved}" />
+									<h:graphicImage styleClass="pendingImgDesc"
+										value="#{staticPath}/resources/img/ic_legend_pending.png" />
+									<h:outputText value=" - #{common.event_view_invites_pending}" />
+								</div>
+							</h:form>
+						</p:tab>
+						<p:tab id="closedTabinvitesId"
+							title="#{common.event_view_invites_closed} (#{eventViewBackingBean.invitesContainer.closed.size()})">
+
+							<h:form id="invitesFormId2">
+								<p:dataTable id="closedInvitesTable"
+									styleClass="closedInvitesList"
+									value="#{eventViewBackingBean.invitesContainer.closed}"
+									var="invite" widgetVar="closedInvitesTable"
+									sortBy="#{eventViewBackingBean.formatDateFrom(invite.dateFrom)}">
+									<p:column id="dateTimeClosedId"
+										sortBy="#{eventViewBackingBean.formatDateFrom(invite.dateFrom)}"
+										styleClass="closedInvitesDateTime">
+										<f:facet name="header">#{common.event_view_invites_dateTime}</f:facet>
+										<h:outputText
+											value="#{eventViewBackingBean.formatDateFrom(invite.dateFrom)}" />
+									</p:column>
+									<p:column id="locationClosedId" styleClass="closedInvitesRoom">
+										<f:facet name="header">#{common.invite_location}</f:facet>
+										<h:outputText value="#{invite.room.location.name}" />
+									</p:column>
+									<p:column id="roomClosedId" styleClass="closedInvitesRoom">
+										<f:facet name="header">#{common.event_view_invites_room}</f:facet>
+										<h:outputText value="#{invite.room.name}" />
+									</p:column>
+									<p:column id="trainerClosedId" sortBy="#{trainer.firstName}"
+										styleClass="closedInvitesTrainer">
+										<f:facet name="header">#{common.event_view_invites_trainer}</f:facet>
+										<ui:repeat var="trainer" varStatus="loop"
+											value="#{eventViewBackingBean.getTrainers(invite)}">
+											<h:outputText
+												value="#{trainer.firstName} #{trainer.lastName} #{!loop.last ? ', ' : ''}" />
+										</ui:repeat>
+									</p:column>
+									<p:column id="assistantClosedId"
+										sortBy="#{eventViewBackingBean.event.assistant.firstName}"
+										styleClass="closedInvitesAssistant">
+										<f:facet name="header">#{common.event_view_invites_assistant}</f:facet>
+										<h:outputText
+											value="#{eventViewBackingBean.event.assistant.firstName} #{eventViewBackingBean.event.assistant.lastName}" />
+									</p:column>
+									<p:column id="attendeeClosedId"
+										styleClass="closedInvitesAttendee">
+										<f:facet name="header"></f:facet>
+										<p:commandLink rendered="#{!invite.canceled}"
+											value="#{common.event_view_invites_seeAttendees}"
+											update=":inventsCreatedClosedId:attendeesDialogPanel:visited  :inventsCreatedClosedId:attendeesDialogPanel:attendeeSize"
+											action="#{eventViewBackingBean.initAttendees()}"
+											oncomplete="attendeesPanel.show();" styleClass="seeAttendee">
+											<f:setPropertyActionListener
+												target="#{eventViewBackingBean.idInvite}"
+												value="#{invite.id}" />
+										</p:commandLink>
+										<h:outputText value="canceled" rendered="#{invite.canceled}" />
+									</p:column>
+								</p:dataTable>
+							</h:form>
+							<p:dialog id="attendeesPanel" styleClass="attendeesDialog"
+								widgetVar="attendeesPanel" header="#{common.select_attendees}"
+								modal="true" resizable="false" dynamic="true">
+								<h:form id="attendeesDialogPanel">
+									<h:outputLabel id="attendeeSize"
+										value="#{common.event_view_invites_attendees}
+											(#{eventViewBackingBean.attendees.size()})"
+										styleClass="attendeeSize">
+									</h:outputLabel>
+									<div class="container">
+										<p:selectManyCheckbox id="visited"
+											value="#{eventViewBackingBean.selectedUsers}"
+											converter="userConverter" layout="pageDirection">
+											<f:selectItems var="attendee" itemValue="#{attendee}"
+												itemLabel=" #{attendee.firstName} #{attendee.lastName}"
+												value="#{eventViewBackingBean.attendees}" />
+										</p:selectManyCheckbox>
+									</div>
+									<div class="dialogFooter">
+										<div>
+											<p:commandButton styleClass="saveButton"
+												onsuccess="attendeesPanel.hide();" value="#{message.save}"
+												action="#{eventViewBackingBean.saveOrUpdateUserStatus()}"
+												ajax="true" />
+										</div>
+										<div>
+											<p:commandButton ajax="true" value="#{common.cancel}"
+												onclick="attendeesPanel.hide();"
+												action="#{eventViewBackingBean.resetSelectedAttendees()}"
+												update="@this" />
+										</div>
+									</div>
+								</h:form>
+								<p:ajax event="close"
+									listener="#{eventViewBackingBean.resetSelectedAttendees()}" />
+							</p:dialog>
+						</p:tab>
+
+					</p:tabView>
+				</div>
+				<div class="invitesWrapper clearBoth">
+					<div id="history">
+						<p:tabView id="historyTabs">
+							<p:tab id="historyTab"
+								title="HISTORY (#{eventViewBackingBean.historyMsgs.size()})">
+								<div class="commentTab">
+									<ui:repeat var="msg"
+										value="#{eventViewBackingBean.repeatPaginator.model}"
+										varStatus="status">
+										<div class="comment_content">
+											<div id="comment_author">
+												<img
+													src="#{eventViewBackingBean.prepareAvatarUrl(msg.userId)}"
+													onError="#{staticPath}/resources/img/trainer_logo.png" />
+												<h:outputLabel
+													value="#{eventViewBackingBean.getUserByComment(msg.userId).role}"
+													styleClass="user_role" />
+												<h:outputLabel
+													value="#{eventViewBackingBean.getUserByComment(msg.userId)}"
+													styleClass="user" />
+											</div>
+											<div class="content">
+												<div class="bubble">
+													<div id="comment">
+														<h:outputLabel
+															value="#{eventViewBackingBean.filterHistory(msg.text)}"
+															escape="false" styleClass="comment_text" />
+														<div class="date_history">
+															<h:outputText
+																value="#{eventViewBackingBean.formatDateFrom(msg.date)}" />
+															<p:commandLink value="Show details"
+																styleClass="detailsLink"
+																rendered="#{eventViewBackingBean.hasDiffReport(msg.text)}"
+																actionListener="#{eventViewBackingBean.updateDetailedMessageDialog(msg.id)}"
+																update=":messageDetails"
+																oncomplete="messageDialog.show(); ">
+															</p:commandLink>
+
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</ui:repeat>
+									<div class="commentPagination">
+										<p:commandButton value="" ajax="true"
+											styleClass="prevHistoryButton"
+											action="#{eventViewBackingBean.repeatPaginator.prev}"
+											update=":historyTabs historyTab"
+											disabled="#{eventViewBackingBean.repeatPaginator.leftDisabled}" />
+										<h:outputText styleClass="pageIndex"
+											value="#{eventViewBackingBean.repeatPaginator.pageIndex} / #{eventViewBackingBean.repeatPaginator.pages}" />
+										<p:commandButton value="" ajax="true"
+											styleClass="nextHistoryButton"
+											action="#{eventViewBackingBean.repeatPaginator.next}"
+											update=":historyTabs historyTab"
+											disabled="#{eventViewBackingBean.repeatPaginator.rightDisabled}" />
+										<h:inputHidden
+											value="#{eventViewBackingBean.repeatPaginator.pageIndex}" />
+									</div>
+								</div>
+							</p:tab>
+							<p:tab id="commentsTab"
+								title="COMMENTS (#{eventViewBackingBean.comments().size()})">
+								<div class="commentTab">
+									<h:form id="form">
+										<ui:repeat var="comments"
+											value="#{eventViewBackingBean.repeatCommentPaginator.model}">
+											<div class="comment_content">
+												<div id="comment_author">
+													<img
+														src="#{eventViewBackingBean.prepareAvatarUrl(comments.userId)}"
+														onError="#{staticPath}/resources/img/trainer_logo.png" />
+													<h:outputLabel
+														value="#{eventViewBackingBean.getUserByComment(comments.userId).role}"
+														styleClass="user_role" />
+													<h:outputLabel
+														value="#{eventViewBackingBean.getUserByComment(comments.userId)}"
+														styleClass="user" />
+												</div>
+												<div class="content">
+													<div class="bubble">
+														<div id="comment">
+															<h:outputLabel value="#{comments.text}"
+																styleClass="comment_text" />
+															<div class="date_comment">
+																#{eventViewBackingBean.formatDateFrom(comments.date)}</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</ui:repeat>
+										<div class="new_comment_space"></div>
+										<div id="comment_author_current">
+											<img
+												src="#{eventViewBackingBean.prepareAvatarUrl(currentUserId)}"
+												onError="#{staticPath}/resources/img/trainer_logo.png" />
+											<h:outputLabel
+												value="#{eventViewBackingBean.getCurrentUser().role}"
+												styleClass="user_role" />
+											<h:outputLabel
+												value="#{eventViewBackingBean.getCurrentUser()}"
+												styleClass="currentUser" />
+										</div>
+										<div class="new_comment">
+											<h:panelGroup id="comment_content" layout="block">
+												<h:inputTextarea id="inputCommentField"
+													value="#{eventViewBackingBean.comment}"
+													styleClass="inputText" />
+												<p:watermark for="inputCommentField"
+													value="Put your comment here" />
+												<div class="addCommentWraper">
+													<p:commandButton id="add" value="Add Comment" ajax="true"
+														action="#{eventViewBackingBean.addComment}"
+														styleClass="add_button" update="@form" />
+												</div>
+											</h:panelGroup>
+										</div>
+										<div class="commentPagination">
+											<p:commandButton value="" ajax="true"
+												styleClass="prevHistoryButton"
+												action="#{eventViewBackingBean.repeatCommentPaginator.prev}"
+												update="@form"
+												disabled="#{eventViewBackingBean.repeatCommentPaginator.leftDisabled}" />
+											<h:outputText styleClass="pageIndex"
+												value="#{eventViewBackingBean.repeatCommentPaginator.pageIndex} / #{eventViewBackingBean.repeatCommentPaginator.pages}" />
+											<p:commandButton value="" ajax="true"
+												styleClass="nextHistoryButton"
+												action="#{eventViewBackingBean.repeatCommentPaginator.next}"
+												update="@form"
+												disabled="#{eventViewBackingBean.repeatCommentPaginator.rightDisabled}" />
+											<h:inputHidden
+												value="#{eventViewBackingBean.repeatCommentPaginator.pageIndex}" />
+										</div>
+									</h:form>
+								</div>
+							</p:tab>
+						</p:tabView>
+
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Diff dialog -->
+		<p:dialog id="messageDetails" header="Diff report"
+			styleClass="diff-report-dialog"
+			onShow="$('span[changes]').tipTip({ 'attribute': 'changes'});"
+			widgetVar="messageDialog" modal="true" width="500" resizable="false">
+			<h:outputLabel value="#{eventViewBackingBean.detailedMessage}"
+				styleClass="diff-report" escape="false" />
+			<h:panelGroup layout="block" styleClass="dialogFooter">
+				<div>
+					<p:commandButton value="Ok" ajax="true"
+						oncomplete="messageDialog.hide();" />
+				</div>
+			</h:panelGroup>
+		</p:dialog>
+		<!-- Comment Dailog -->
+		<p:dialog id="eventRejectedDlg" widgetVar="eventRejectedStatusVar"
+			modal="true" styleClass="addPeopleInInvite"
+			header="#{common.enter_comment}" resizable="false" dynamic="true">
+			<h:form id="buttonsAddB">
+				<div class="addComment">
+					<p:inputTextarea styleClass="commentTextArea" rows="5" cols="90"
+						counter="counter" maxlength="120"
+						counterTemplate="{0} #{common.characters_remaining}"
+						autoResize="false" value="#{eventViewBackingBean.comment}" />
+					<h:outputText id="counter" styleClass="counter" />
+				</div>
+				<div class="save_explain">
+					<h:outputText value="#{common.after_comment_save_explanation}" />
+				</div>
+				<div class="dialogFooter">
+					<div>
+						<p:commandButton value="#{common.save}"
+							action="#{eventViewBackingBean.saveCommentAndRejectedStatus()}"
+							ajax="false" onsuccess="eventRejectedStatusVar.hide();" />
+					</div>
+					<div>
+						<p:commandButton value="#{common.cancel}" ajax="false"
+							action="#{eventViewBackingBean.cancelChangeEventStatus()}"
+							onclick="eventRejectedStatusVar.hide();"
+							update=":currentEventStatus:statusImg :eventStatuses:changeEventStatusDropDown"
+							oncomplete="hideDefTitleInStatusSelect();" />
+					</div>
+				</div>
+			</h:form>
+			<p:ajax event="close" update=""
+				listener="#{usersListBackingBean.clearSelection}" />
+		</p:dialog>
+	</ui:define>
+</ui:composition>

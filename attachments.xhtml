@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	template="/WEB-INF/templates/default.xhtml"
+	xmlns:p="http://primefaces.org/ui" xmlns:o="http://omnifaces.org/ui"
+	xmlns:of="http://omnifaces.org/functions">
+
+	<ui:define name="content">
+
+		<div class="eventContainer">
+			<p:messages id="messages" showDetail="false" autoUpdate="true" />
+
+			<div class="categoryTree">
+				<o:form>
+					<p:panel>
+						<h:outputText value="#{common.keyword}" />
+						<h:inputText value="#{attachmentController.keyword}" />
+
+						<h:outputText value="#{common.attachments_size} " />
+						<h:outputText value="(#{common.from}, #{common.kilobytes})" />
+						<h:inputText id="fromSize"
+							value="#{attachmentController.fromSize}">
+							<f:validateRegex pattern="^[0-9]+$" />
+						</h:inputText>
+					
+						<h:outputText value="#{common.attachments_size} " />
+						<h:outputText value="(#{common.to}, #{common.kilobytes})" />
+						<h:inputText id="toSize" value="#{attachmentController.toSize}">
+							<f:validateRegex pattern="^[0-9]+$" />
+						</h:inputText>
+						
+						<h:outputText value="#{common.attachments_type}" />
+						<h:inputText value="#{attachmentController.type}" />
+
+						<!-- <h:outputText value="#{common.order_by}" />
+					<h:selectOneMenu id="orderBySelect"
+						value="#{attachmentController.order}">
+						<f:selectItem itemLabel="#{common.file_name}" itemValue="title" />
+						<f:selectItem itemLabel="#{common.attachments_size}"
+							itemValue="size" />
+					</h:selectOneMenu>
+ 				-->
+						<p:commandButton id="searchButton" value="#{common.search}"
+							update=":attachments" onclick="attachmentsTable.getPaginator().setPage(0)"/>
+					</p:panel>
+				</o:form>
+			</div>
+
+			<div class="evensList">
+				<h:form id="attachments">
+					<p:dataTable value="#{attachmentController.dataModel}"
+						var="attachment" rows="#{attachmentController.resultsPerPage}"
+						paginator="true" paginatorPosition="bottom" lazy="true"
+						styleClass="attachmentsTable" widgetVar="attachmentsTable"
+						paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink}"
+						emptyMessage="#{common.no_records_found}"
+						currentPageReportTemplate="{currentPage} #{message.of} {totalPages}"
+						selection="#{attachmentController.selectedAttachments}">
+
+						<p:column selectionMode="multiple" />
+						<p:column headerText="#{common.select_all}">
+							<div class="event">
+								<div class="title">
+									<h:outputText escape="false"
+										value="#{attachment.title}.#{attachment.type}, #{attachmentController.convertFileSizeToKB(attachment.size)} #{common.kilobytes}" />
+								</div>
+								<div>
+									<h:outputText
+										value="#{contentTranslationController.translate(attachment.event.title)}" />
+								</div>
+							</div>
+						</p:column>
+					</p:dataTable>
+
+					<p:separator />
+
+					<div class="title">
+						<span class='boldText'> <h:outputText
+								value="#{common.selected_items}" />
+						</span>
+						<h:selectOneMenu id="selectedItemsAction"
+							value="#{attachmentController.action}">
+							<f:selectItem itemLabel="#{common.actions}" itemValue="actions"
+								noSelectionOption="true" />
+							<f:selectItem itemLabel="#{common.delete}" itemValue="delete" />
+						</h:selectOneMenu>
+
+						<p:commandButton id="moveEventsButton" value="#{common.submit}"
+							action="#{attachmentController.handleAttachmentAction()}"
+							ajax="false" />
+					</div>
+				</h:form>
+			</div>
+			<div class="clearFloat"></div>
+		</div>
+	</ui:define>
+</ui:composition>
